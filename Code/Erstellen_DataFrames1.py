@@ -82,7 +82,11 @@ grouped.plot()
 plt.show()
 #gpd_ways = gpd.GeoDataFrame(grouped, geometry=geometry)
 
-
+#Erstellung Power_relations table
+df_power_relations = pd.read_csv(file_relation)
+df_power_relations = df_power_relations.drop(["Unnamed: 0","from","name","note","operator","route","to","type","via","colour","fixme","operator:wikidata","operator:wikipedia","old_operator","ref","via:2","rating"], axis=1) #drop unwanted columns
+df_power_relations = df_power_relations.reindex(columns=["ID",'voltage',"cables","wires","frequency","Members"]) #reorder columns #no circuits in relations.csv?
+#print(df_power_relations.head().to_string())
 
 # Umsetzung des Power_scripts
 #In Relation von 380 kV auf 400 kV
