@@ -88,6 +88,54 @@ df_power_relations = df_power_relations.drop(["Unnamed: 0","from","name","note",
 df_power_relations = df_power_relations.reindex(columns=["ID",'voltage',"cables","wires","frequency","Members"]) #reorder columns #no circuits in relations.csv?
 #print(df_power_relations.head().to_string())
 
+# Erstellung der Relations table
+relations = {'id': [], 'version': [], 'user_id': [], 'tstamp': [], 'changeset_id': [], 'tags': []}
+df_relations_new = pd.DataFrame(relations)
+df_relations = pd.read_csv(file_relation)
+columns = list(df_relations.columns)
+print(columns)
+columns.remove('Unnamed: 0')
+columns.remove('ID')
+columns.remove('Members')
+print(columns)
+df_relations_new['id'] = df_relations['ID'].copy()
+# print(len(df_ways))
+# print(len(columns))
+for i in range(0, len(df_relations)):
+    tag_string = ''
+    for a in range(0, len(columns)):
+        key = columns[a]
+        if len(str(df_relations[key].loc[i])) > 1:
+            tag_string = tag_string + '"' + str(key) + '"' + '=>' + '"' + str(df_relations[key].loc[i]) + '"' + ', '
+    # print(tag_string)
+    df_relations_new.loc[i, 'tags'] = tag_string
+# df_relations_new.to_csv('test.csv')
+
+
+# Erstellung der Ways table
+ways = {'id': [], 'version': [], 'user_id': [], 'tstamp': [], 'changeset_id': [], 'tags': [], 'nodes': []}
+df_ways_new = pd.DataFrame(ways)
+df_ways = pd.read_csv(file_way)
+columns = list(df_ways.columns)
+print(columns)
+columns.remove('Unnamed: 0')
+columns.remove('ID')
+columns.remove('Nodes')
+print(columns)
+df_ways_new['id'] = df_ways['ID'].copy()
+df_ways_new['nodes'] = df_ways['Nodes'].copy()
+# print(len(df_ways))
+# print(len(columns))
+for i in range(0, len(df_ways)):
+    tag_string = ''
+    for a in range(0, len(columns)):
+        key = columns[a]
+        if len(str(df_ways[key].loc[i])) > 1:
+            tag_string = tag_string + '"' + str(key) + '"' + '=>' + '"' + str(df_ways[key].loc[i]) + '"' + ', '
+    # print(tag_string)
+    df_ways_new.loc[i, 'tags'] = tag_string
+# df_ways_new.to_csv('test.csv')
+
 # Umsetzung des Power_scripts
 #In Relation von 380 kV auf 400 kV
 #df_relation_members['voltage'].mask(df_relation_members['voltage'] >= 380000, 400000, inplace=True)
