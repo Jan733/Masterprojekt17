@@ -74,12 +74,15 @@ df_power_ways["node_id"]=df_power_ways["node_id"].astype("str")     # Umschreibe
 df_nodes_new["node_id"]=df_nodes_new["node_id"].astype("str")
 df_power_ways = pd.merge(df_power_ways, df_nodes_new, how="left", on="node_id")     # Zusammenfügen der Ways und Nodes Tabelle um die Geometry über die Ways zu legen
 df_power_ways_new = df_power_ways[["way_id", "geometry"]].copy()            # Erstellung der power_ways tabelle mit den Einzelnen Punkten der Geometrie
-grouped = df_power_ways_new.groupby(["way_id"])["geometry"].agg(lambda x: LineString(x.tolist()))   # Die einzelnen Punkte werden zusammengefasst und zum Linestring umgewandelt für jeden Way
+df_power_ways_new= df_power_ways_new.rename(columns={"way_id":"ID"})        # rename way_id for adding new columns
+grouped = df_power_ways_new.groupby(["ID"])["geometry"].agg(lambda x: LineString(x.tolist()))   # Die einzelnen Punkte werden zusammengefasst und zum Linestring umgewandelt für jeden Way
 #grouped=df_power_ways_new.groupby("way_id").agg({"geometry":list})
+df_power_way_columns = df_way_nodes[["ID", "power", "voltage", "cables", "wires", "circuits", "frequency", "name"]].copy()      # add needed columns
+grouped = pd.merge(grouped, df_power_way_columns, how="left", on="ID")
 grouped=gpd.GeoDataFrame(grouped, geometry="geometry")      # Erstellen der Geopandasdataframes
 print(grouped.head().to_string())
-grouped.plot()
-plt.show()
+#grouped.plot()
+#plt.show()
 #gpd_ways = gpd.GeoDataFrame(grouped, geometry=geometry)
 
 #Erstellung Power_relations table
