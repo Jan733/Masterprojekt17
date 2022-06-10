@@ -89,6 +89,8 @@ print(grouped.head().to_string())
 df_power_relations = pd.read_csv(file_relation)
 df_power_relations = df_power_relations.drop(["Unnamed: 0","from","name","note","operator","route","to","type","via","colour","fixme","operator:wikidata","operator:wikipedia","old_operator","ref","via:2","rating"], axis=1) #drop unwanted columns
 df_power_relations = df_power_relations.reindex(columns=["ID",'voltage',"cables","wires","frequency","Members"]) #reorder columns #no circuits in relations.csv?
+#Power_relations_applied_changes
+df_power_relations_applied_changes = df_power_relations.copy()
 #print(df_power_relations.head().to_string())
 
 # Erstellung der Relations table
@@ -139,11 +141,32 @@ for i in range(0, len(df_ways)):
     df_ways_new.loc[i, 'tags'] = tag_string
 # df_ways_new.to_csv('test.csv')
 
-# Umsetzung des Power_scripts
-#In Relation von 380 kV auf 400 kV
-#df_relation_members['voltage'].mask(df_relation_members['voltage'] >= 380000, 400000, inplace=True)
+#   Umsetzung des Power_scripts
 
-#print(df_relation_members['voltage'])
+#   Create the Topologie-Tabellen
+
+#--Bus Data TODO: Index
+bus_data_columns = {"id":[], 'cnt': [], 'the_geom': [], 'voltage': [], 'substation_id': [], 'buffered': []}
+bus_data = pd.DataFrame(bus_data_columns)
+
+#--branch_data TODO: Index
+branch_data_columns = {"branch_id":[], 'relation_id': [], 'line_id': [], 'length': [], 'way geometry': [], 'f_bus': [], 't_bus': [], 'voltage': [], 'cables': [], 'wires': [], 'frequency':[], "power":[]}
+branch_data = pd.DataFrame(branch_data_columns)
+
+
+#   Change the Voltage of 400kV
+for x in df_power_relations_applied_changes["frequency"]:
+    if x == 50:
+        df_power_relations_applied_changes['voltage'].mask(df_power_relations_applied_changes['voltage'] == 400000, 380000,
+                                                       inplace=True)
+#   Create table power_line
+#power_line =pd.DataFrame()
+#for x in df_power_ways["power"]:
+ #   if power = "line" or power = "cable":
+
+
+
+
 
 
 
