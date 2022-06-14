@@ -94,9 +94,9 @@ df_power_relations_applied_changes = df_power_relations.copy()
 #print(df_power_relations.head().to_string())
 
 #Erstellung Power_relations_applied table
-df_power_relations_applied = pd.read_csv(file_relation)
-df_power_relations_applied = df_power_relations_applied.drop(["Unnamed: 0","from","name","note","operator","route","to","type","via","colour","fixme","operator:wikidata","operator:wikipedia","old_operator","ref","via:2","rating"], axis=1) #drop unwanted columns
-df_power_relations_applied = df_power_relations_applied.reindex(columns=["ID",'voltage',"cables","wires","frequency","Members"]) #reorder columns #no circuits in relations.csv?
+df_power_relations_applied_changes = pd.read_csv(file_relation)
+df_power_relations_applied_changes = df_power_relations_applied_changes.drop(["Unnamed: 0","from","name","note","operator","route","to","type","via","colour","fixme","operator:wikidata","operator:wikipedia","old_operator","ref","via:2","rating"], axis=1) #drop unwanted columns
+df_power_relations_applied_changes = df_power_relations_applied_changes.reindex(columns=["ID",'voltage',"cables","wires","frequency","Members"]) #reorder columns #no circuits in relations.csv?
 #print(df_power_relations_applied.head().to_string())
 
 # Erstellung der Relations table
