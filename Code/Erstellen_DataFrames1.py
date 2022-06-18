@@ -159,6 +159,9 @@ df_bus_data = pd.DataFrame(bus_data_columns)
 branch_data_columns = {"branch_id":[], 'relation_id': [], 'line_id': [], 'length': [], 'way geometry': [], 'f_bus': [], 't_bus': [], 'voltage': [], 'cables': [], 'wires': [], 'frequency':[], "power":[]}
 df_branch_data = pd.DataFrame(branch_data_columns)
 
+#   Create power_ways_applied_changes
+df_power_ways_applied_changes = df_power_ways.copy()
+#print(df_power_ways_applied_changes.head().to_string())
 
 #   Change the Voltage of 400kV
 df_power_relations_applied_changes["frequency"] = df_power_relations_applied_changes["frequency"].astype("str")  #change from string to float for the if function
@@ -167,14 +170,18 @@ for x in df_power_relations_applied_changes["frequency"]:
         df_power_relations_applied_changes['voltage'].mask(df_power_relations_applied_changes['voltage'] == 400000, 380000,
                                                        inplace=True)
 
-print(df_power_relations_applied_changes.to_string())
+#print(df_power_relations_applied_changes.to_string())
 
 #   Create table power_line
-#power_line =df_power_relations_applied_changes[df_power_relations_applied_changes.isin(["line", "cable"]).any(axis = 1)]
-power_line = df_power_relations_applied_changes     #TODO es fehlt das Power_column / nur einfügen wenn power = line oder cable
+df_power_line = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(["line", "cable"]).any(axis = 1)]       # Select only the "Spalte" with power = cable or line
+#TODO Set a new Index!!
+#df_power_line.set_index("ID", drop=False)
+#print(df_power_line.head().to_string())
 
-#for x in df_power_ways_alt["power"]:
- #   if power = "line" or power = "cable":
+#   Create table power_substation
+df_power_substation = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(['substation','sub_station','station', 'plant']).any(axis = 1)]
+df_power_substation = df_power_substation.set_index("ID", drop=False)
+print(df_power_substation.head().to_string())
 
 
 
