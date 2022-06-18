@@ -11,6 +11,8 @@ import matplotlib
 from shapely.geometry import shape
 from shapely.geometry import Point
 from shapely.geometry import LineString
+from shapely.geometry import Polygon
+from shapely.ops import polygonize
 import os
 from shapely import wkt
 import ast
@@ -173,15 +175,23 @@ for x in df_power_relations_applied_changes["frequency"]:
 #print(df_power_relations_applied_changes.to_string())
 
 #   Create table power_line
-df_power_line = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(["line", "cable"]).any(axis = 1)]       # Select only the "Spalte" with power = cable or line
+df_power_line = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(["line", "cable"]).any(axis = 1)]       # Select only the lines with power = cable or line
 #TODO Set a new Index!!
 #df_power_line.set_index("ID", drop=False)
 #print(df_power_line.head().to_string())
 
 #   Create table power_substation
-df_power_substation = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(['substation','sub_station','station', 'plant']).any(axis = 1)]
+df_power_substation = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(['substation','sub_station','station', 'plant']).any(axis = 1)]  #select only lines where Power is 'substation','sub_station','station', 'plant'
+df_power_substation_geometry = df_power_substation["geometry"].agg(lambda x: Polygon(x))        # Create Polygon out of Linestrings
+
+df_power_substation = gpd.GeoDataFrame(df_power_substation, geometry = df_power_substation_geometry)    # create the gpd with the Polygons
+#for x in df_power_substation ["geometry"]:
+ #   if
+
 df_power_substation = df_power_substation.set_index("ID", drop=False)
 print(df_power_substation.head().to_string())
+#df_power_substation.plot()
+#plt.show()
 
 
 
