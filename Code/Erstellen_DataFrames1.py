@@ -35,59 +35,59 @@ file_way = raw_data_dir +"/way_test.csv"
 file_relation = raw_data_dir + "/relation_test.csv"
 
 #   Erstellen Nodes
-df_nodes=pd.read_csv(file_node)
+df_nodes_alt =pd.read_csv(file_node)
 #   Erstellen der Geometrie
-df_nodes[["longitude", "latitude"]]=df_nodes.Location.str.split("/", expand=True)
-#   df_nodes.drop("Location")
-geometry= gpd.points_from_xy(df_nodes.longitude, df_nodes.latitude)     # Point Geometrie mithilfe der longitude und Latitude
-geo_df = gpd.GeoDataFrame(df_nodes, geometry=geometry)                  # Erstellung der Geopandas Tabelle in die die Geometry eingetragen wird.
-#   print(df_nodes.head().to_string())
-df_nodes = df_nodes.drop(["Location"], axis=1)      #Löschen des Columns Location
-df_nodes.rename(columns={"ID":"node_id"}, inplace=True)    # Umbennen des Columns ID, damit bei mehreren Tabellen die ID unter demselben Column steht (vereinfacht das zusammenfügen bei Betrachtung eines Indexes)
-df_nodes_new = df_nodes[["node_id", "power", "geometry"]].copy()  # Erstellung der table: nodes mit den nötigen columns
-#print(df_nodes_new.head().to_string())
+df_nodes_alt [["longitude", "latitude"]]=df_nodes_alt.Location.str.split("/", expand=True)
+#   df_nodes_alt.drop("Location")
+geometry= gpd.points_from_xy(df_nodes_alt.longitude, df_nodes_alt.latitude)     # Point Geometrie mithilfe der longitude und Latitude
+geo_df = gpd.GeoDataFrame(df_nodes_alt, geometry=geometry)                  # Erstellung der Geopandas Tabelle in die die Geometry eingetragen wird.
+#   print(df_nodes_alt.head().to_string())
+df_nodes_alt = df_nodes_alt.drop(["Location"], axis=1)      #Löschen des Columns Location
+df_nodes_alt.rename(columns={"ID":"node_id"}, inplace=True)    # Umbennen des Columns ID, damit bei mehreren Tabellen die ID unter demselben Column steht (vereinfacht das zusammenfügen bei Betrachtung eines Indexes)
+df_nodes = df_nodes_alt[["node_id", "power", "geometry"]].copy()  # Erstellung der table: nodes mit den nötigen columns
+#print(df_nodes.head().to_string())
 
 #   Erstellen Relation_Members // Es fehlt noch member type N (node) oder W (way) sowie member_role
-df_relation_members=pd.read_csv(file_relation)
-df_relation_members["Members"]=df_relation_members["Members"].apply(ast.literal_eval)       # Zugriff auf die einzelnen Werte der Liste: "Members"
-df_relation_members_memb = df_relation_members["Members"].apply(pd.Series).reset_index().melt(id_vars="index").dropna()[["index","value"]].set_index("index")   # Die Members werden einzelnt untereinander geschrieben und einem neuen Index zugeordnet
-df_new = pd.merge(df_relation_members["ID"], df_relation_members_memb,  right_index=True, left_index=True).rename(columns={'value':'member_id', 'ID':'relation_id'})    # Die einzelnen Members werden der relation zugeorndet
-df_new["sequential_ID"]=df_new.groupby(["relation_id"]).cumcount()      # Erstellung einer sequentiell ID (abzählen wie häufig eine relation nacheinander kommt, somit Anzahl der Member
-#pd.merge(pd.merge(df_relation_members_memb,left_index=True,right_index=True),df_relation_members[["ID"]], left_index=True, right_index=True).rename(columns={'value_x':'Members'})
-#print(df_new.to_string())
-#print(df_relation_members.head().to_string())
+df_relation_members_alt=pd.read_csv(file_relation)
+df_relation_members_alt["Members"]=df_relation_members_alt["Members"].apply(ast.literal_eval)       # Zugriff auf die einzelnen Werte der Liste: "Members"
+df_relation_members_alt_memb = df_relation_members_alt["Members"].apply(pd.Series).reset_index().melt(id_vars="index").dropna()[["index","value"]].set_index("index")   # Die Members werden einzelnt untereinander geschrieben und einem neuen Index zugeordnet
+df_relation_members = pd.merge(df_relation_members_alt["ID"], df_relation_members_alt_memb,  right_index=True, left_index=True).rename(columns={'value':'member_id', 'ID':'relation_id'})    # Die einzelnen Members werden der relation zugeorndet
+df_relation_members["sequential_ID"]=df_relation_members.groupby(["relation_id"]).cumcount()      # Erstellung einer sequentiell ID (abzählen wie häufig eine relation nacheinander kommt, somit Anzahl der Member
+#pd.merge(pd.merge(df_relation_members_alt_memb,left_index=True,right_index=True),df_relation_members_alt[["ID"]], left_index=True, right_index=True).rename(columns={'value_x':'Members'})
+#print(df_relation_members.to_string())
+#print(df_relation_members_alt.head().to_string())
 
 #   Erstellen der Way_nodes Tabelle
-df_way_nodes=pd.read_csv (file_way)
-df_way_nodes["Nodes"]=df_way_nodes["Nodes"].apply(ast.literal_eval)
-df_way_nodes_nt=df_way_nodes["Nodes"].apply(pd.Series).reset_index().melt(id_vars="index").dropna()[["index","value"]].set_index("index")
-df_way_nodes_new = pd.merge(df_way_nodes["ID"],df_way_nodes_nt, right_index=True, left_index=True).rename(columns={'value':'node_id', 'ID':'way_id'})
-df_way_nodes_new["sequential_ID"]=df_way_nodes_new.groupby(["way_id"]).cumcount()
-#df_way_nodes_ntt = df_way_nodes["Nodes"].apply(pd.Series).reset_index().melt(id_vars="index").dropna()[["index","value"]].set_index("index")
-#df_way_nodes_new_new = pd.merge(df_way_nodes_new["node_id"], df_nodes_new["ID"], right_index=True, left_index=True)
-#print(df_way_nodes_new)
+df_way_nodes_alt=pd.read_csv (file_way)
+df_way_nodes_alt["Nodes"]=df_way_nodes_alt["Nodes"].apply(ast.literal_eval)
+df_way_nodes_alt_nt=df_way_nodes_alt["Nodes"].apply(pd.Series).reset_index().melt(id_vars="index").dropna()[["index","value"]].set_index("index")
+df_way_nodes = pd.merge(df_way_nodes_alt["ID"],df_way_nodes_alt_nt, right_index=True, left_index=True).rename(columns={'value':'node_id', 'ID':'way_id'})
+df_way_nodes["sequential_ID"]=df_way_nodes.groupby(["way_id"]).cumcount()
+#df_way_nodes_alt_ntt = df_way_nodes_alt["Nodes"].apply(pd.Series).reset_index().melt(id_vars="index").dropna()[["index","value"]].set_index("index")
+#df_way_nodes_new = pd.merge(df_way_nodes["node_id"], df_nodes["ID"], right_index=True, left_index=True)
+#print(df_way_nodes)
 
 #   Erstellung power_ways Table // Geometry der Ways
 #print(df_geometry_index)
-df_power_ways = df_way_nodes_new
-df_power_ways["node_id"]=df_power_ways["node_id"].astype("str")     # Umschreiben der beiden IDs zu String, da eine Object und eine Integer ist.
-df_nodes_new["node_id"]=df_nodes_new["node_id"].astype("str")
-df_power_ways = pd.merge(df_power_ways, df_nodes_new, how="left", on="node_id")     # Zusammenfügen der Ways und Nodes Tabelle um die Geometry über die Ways zu legen
-df_power_ways_new = df_power_ways[["way_id", "geometry"]].copy()            # Erstellung der power_ways tabelle mit den Einzelnen Punkten der Geometrie
-df_power_ways_new= df_power_ways_new.rename(columns={"way_id":"ID"})        # rename way_id for adding new columns
-grouped = df_power_ways_new.groupby(["ID"])["geometry"].agg(lambda x: LineString(x.tolist()))   # Die einzelnen Punkte werden zusammengefasst und zum Linestring umgewandelt für jeden Way
-#grouped=df_power_ways_new.groupby("way_id").agg({"geometry":list})
-df_power_way_columns = df_way_nodes[["ID", "power", "voltage", "cables", "wires", "circuits", "frequency", "name"]].copy()      # add needed columns
-grouped = pd.merge(grouped, df_power_way_columns, how="left", on="ID")
-grouped=gpd.GeoDataFrame(grouped, geometry="geometry")      # Erstellen der Geopandasdataframes
-print(grouped.head().to_string())
-#grouped.plot()
+df_power_ways_alt = df_way_nodes
+df_power_ways_alt["node_id"]=df_power_ways_alt["node_id"].astype("str")     # Umschreiben der beiden IDs zu String, da eine Object und eine Integer ist.
+df_nodes["node_id"]=df_nodes["node_id"].astype("str")
+df_power_ways_alt = pd.merge(df_power_ways_alt, df_nodes, how="left", on="node_id")     # Zusammenfügen der Ways und Nodes Tabelle um die Geometry über die Ways zu legen
+df_power_ways_alt_2 = df_power_ways_alt[["way_id", "geometry"]].copy()            # Erstellung der power_ways tabelle mit den Einzelnen Punkten der Geometrie
+df_power_ways_alt_2= df_power_ways_alt_2.rename(columns={"way_id":"ID"})        # rename way_id for adding new columns
+df_power_ways = df_power_ways_alt_2.groupby(["ID"])["geometry"].agg(lambda x: LineString(x.tolist()))   # Die einzelnen Punkte werden zusammengefasst und zum Linestring umgewandelt für jeden Way
+#df_power_ways=df_power_ways_alt_2.groupby("way_id").agg({"geometry":list})
+df_power_way_columns = df_way_nodes_alt[["ID", "power", "voltage", "cables", "wires", "circuits", "frequency", "name"]].copy()      # add needed columns
+df_power_ways = pd.merge(df_power_ways, df_power_way_columns, how="left", on="ID")
+df_power_ways=gpd.GeoDataFrame(df_power_ways, geometry="geometry")      # Erstellen der Geopandasdataframes
+print(df_power_ways.head().to_string())
+#df_power_ways.plot()
 #plt.show()
-#gpd_ways = gpd.GeoDataFrame(grouped, geometry=geometry)
+#gpd_ways = gpd.GeoDataFrame(df_power_ways, geometry=geometry)
 
 #Erstellung Power_relations table
 df_power_relations = pd.read_csv(file_relation)
-df_power_relations = df_power_relations.drop(["Unnamed: 0","from","name","note","operator","route","to","type","via","colour","fixme","operator:wikidata","operator:wikipedia","old_operator","ref","via:2","rating"], axis=1) #drop unwanted columns
+df_power_relations = df_power_relations.drop(["Unnamed: 0","from","name","note","operator","route","to","type","via","colour","fixme","operator:wikidata","operator:wikipedia","old_operator","ref","via:2","rating"], axis=1) #drop unwanted columns TODO other csv have more data change the function to drop everything else
 df_power_relations = df_power_relations.reindex(columns=["ID",'voltage',"cables","wires","frequency","Members"]) #reorder columns #no circuits in relations.csv?
 #Power_relations_applied_changes
 df_power_relations_applied_changes = df_power_relations.copy()
@@ -128,11 +128,11 @@ ways = {'id': [], 'version': [], 'user_id': [], 'tstamp': [], 'changeset_id': []
 df_ways_new = pd.DataFrame(ways)
 df_ways = pd.read_csv(file_way)
 columns = list(df_ways.columns)
-print(columns)
+#print(columns)
 columns.remove('Unnamed: 0')
 columns.remove('ID')
 columns.remove('Nodes')
-print(columns)
+#print(columns)
 df_ways_new['id'] = df_ways['ID'].copy()
 df_ways_new['nodes'] = df_ways['Nodes'].copy()
 # print(len(df_ways))
@@ -153,21 +153,27 @@ for i in range(0, len(df_ways)):
 
 #--Bus Data TODO: Index
 bus_data_columns = {"id":[], 'cnt': [], 'the_geom': [], 'voltage': [], 'substation_id': [], 'buffered': []}
-bus_data = pd.DataFrame(bus_data_columns)
+df_bus_data = pd.DataFrame(bus_data_columns)
 
 #--branch_data TODO: Index
 branch_data_columns = {"branch_id":[], 'relation_id': [], 'line_id': [], 'length': [], 'way geometry': [], 'f_bus': [], 't_bus': [], 'voltage': [], 'cables': [], 'wires': [], 'frequency':[], "power":[]}
-branch_data = pd.DataFrame(branch_data_columns)
+df_branch_data = pd.DataFrame(branch_data_columns)
 
 
 #   Change the Voltage of 400kV
+df_power_relations_applied_changes["frequency"] = df_power_relations_applied_changes["frequency"].astype("str")  #change from string to float for the if function
 for x in df_power_relations_applied_changes["frequency"]:
-    if x == 50:
+    if x == "50":
         df_power_relations_applied_changes['voltage'].mask(df_power_relations_applied_changes['voltage'] == 400000, 380000,
                                                        inplace=True)
+
+print(df_power_relations_applied_changes.to_string())
+
 #   Create table power_line
-#power_line =pd.DataFrame()
-#for x in df_power_ways["power"]:
+#power_line =df_power_relations_applied_changes[df_power_relations_applied_changes.isin(["line", "cable"]).any(axis = 1)]
+power_line = df_power_relations_applied_changes     #TODO es fehlt das Power_column / nur einfügen wenn power = line oder cable
+
+#for x in df_power_ways_alt["power"]:
  #   if power = "line" or power = "cable":
 
 
