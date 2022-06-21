@@ -16,7 +16,9 @@ from shapely.ops import polygonize
 import os
 from shapely import wkt
 import ast
-
+import time
+#Processingtime in minutes
+timer_start = time.time()
 #df = pd.concat(map(pd.read_csv, ["C:/Users/Jan/Documents/Studium/Master/1.Semester/Masterprojekt/osmTGmod/raw_data/Probedateien/node.csv","C:/Users/Jan/Documents/Studium/Master/1.Semester/Masterprojekt/osmTGmod/raw_data/Probedateien/way_neu.csv"]),ignore_index=True)
 
 #print(df.head().to_string())
@@ -196,7 +198,9 @@ df_power_substation = df_power_substation.set_index("ID", drop=False)
 
 
 
-
+#Processingtime in minutes
+timer_end = time.time()
+print('Runtime ' + str(round((timer_end-timer_start)/60, 2)) + ' Minutes')
 
 
 
