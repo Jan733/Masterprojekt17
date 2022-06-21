@@ -189,8 +189,8 @@ df_power_substation = gpd.GeoDataFrame(df_power_substation, geometry = df_power_
  #   if
 
 df_power_substation = df_power_substation.set_index("ID", drop=False)
-print(df_power_substation.head().to_string())
-#df_power_substation.plot()
+#print(df_power_substation.head().to_string())
+#df_power_substation.plot()         #Create the Plot
 #plt.show()
 
 
