@@ -91,19 +91,15 @@ print(df_power_ways.head().to_string())
 #plt.show()
 #gpd_ways = gpd.GeoDataFrame(df_power_ways, geometry=geometry)
 
-#Erstellung Power_relations table
+# Erstellen Power_relations table
 df_power_relations = pd.read_csv(file_relation)
-df_power_relations = df_power_relations.drop(["Unnamed: 0","from","name","note","operator","route","to","type","via","colour","fixme","operator:wikidata","operator:wikipedia","old_operator","ref","via:2","rating"], axis=1) #drop unwanted columns TODO other csv have more data change the function to drop everything else
-df_power_relations = df_power_relations.reindex(columns=["ID",'voltage',"cables","wires","frequency","Members"]) #reorder columns #no circuits in relations.csv?
-#Power_relations_applied_changes
+df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"]]  # drop unwanted columns
+df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"])  # reorder columns #no circuits in relations.csv?
+#print(df_power_relations_new.head().to_string())
+
+#Erstellen power_relations_applied_changes
 df_power_relations_applied_changes = df_power_relations.copy()
 #print(df_power_relations.head().to_string())
-
-#Erstellung Power_relations_applied table
-df_power_relations_applied_changes = pd.read_csv(file_relation)
-df_power_relations_applied_changes = df_power_relations_applied_changes.drop(["Unnamed: 0","from","name","note","operator","route","to","type","via","colour","fixme","operator:wikidata","operator:wikipedia","old_operator","ref","via:2","rating"], axis=1) #drop unwanted columns
-df_power_relations_applied_changes = df_power_relations_applied_changes.reindex(columns=["ID",'voltage',"cables","wires","frequency","Members"]) #reorder columns #no circuits in relations.csv?
-#print(df_power_relations_applied.head().to_string())
 
 # Erstellung der Relations table
 relations = {'id': [], 'version': [], 'user_id': [], 'tstamp': [], 'changeset_id': [], 'tags': []}
@@ -175,7 +171,6 @@ for x in df_power_relations_applied_changes["frequency"]:
     if x == "50":
         df_power_relations_applied_changes['voltage'].mask(df_power_relations_applied_changes['voltage'] == 400000, 380000,
                                                        inplace=True)
-
 #print(df_power_relations_applied_changes.to_string())
 
 #   Create table power_line
@@ -198,11 +193,71 @@ df_power_substation = df_power_substation.set_index("ID", drop=False)
 #plt.show()
 
 
+#495
+# Create table power_circuits
+power_circuits = df_power_relations_applied_changes  # braucht man das PK?
+
+#503
+# Create table power_circ_members #gets information from power_line table
+power_circ_members = {'relation_id': [], 'line_id': []}  # line_id of relation members
+
+#515
+#Change datatypes to int
+def change_datatype_semic(column, position):
+    x = 0
+    while x < len(power_circuits[column]):
+        try:
+            power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = int(
+                power_circuits.at[x, column].split(";", position)[position-1])  # value at *position* will be considered, if there are more than one
+        except ValueError as ex:
+            power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 0
+        x = x + 1
+
+
+change_datatype_semic("cables", position) #position starts from 1
+change_datatype_semic("voltage", position)
+change_datatype_semic("circuits", position)
+change_datatype_semic("frequency", position)
+
+def change_datatype_wires(column, position):
+    x = 0
+    while x < len(power_circuits[column]):
+        wire_type = power_circuits.at[x, column].split(";", position)[position-1]  # wire_type at *position* will be considered, if there are more than one
+        match wire_type:
+            case "quad":
+                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 4
+            case "triple":
+                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 3
+            case "double":
+                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 2
+            case "single":
+                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 1
+            case _:
+                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 0 #works only for quad, triple, double, single
+        x = x + 1
+
+change_datatype_wires("wires", 1)#position starts from 1
+
+''' #print more rows
+pd.set_option('display.max_columns', None) 
+pd.set_option('display.width', 100000000)
+pd.set_option('display.max_rows', None)
+'''
+
+#536
+#ASSUMPTION: Voltage of 110kV to 60kV
+for x in power_circuits["voltage"]:
+    power_circuits['voltage'].mask(power_circuits['voltage'] == 110000, 60000, inplace=True)
+
+#print(power_circuits)
+#print(power_circuits.head().to_string())
+
 
 
 #Processingtime in minutes
 timer_end = time.time()
 print('Runtime ' + str(round((timer_end-timer_start)/60, 2)) + ' Minutes')
+
 
 
 
