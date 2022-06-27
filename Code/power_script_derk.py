@@ -102,3 +102,77 @@ for i in range(0, len(branch_data)):
 
 # 1139
 branch_data['discovered'] = False
+
+# 1141
+# in discovered: If in Python Input graph_dfs is selected True, then disconnected graphs will be deleted
+
+# 1145-1148
+# what is ST_MakeLine
+
+# 1154-1157
+for i in range(0, len(branch_data)):
+    if branch_data.iloc['frequency', i] == 0:
+        dcline_data.loc[len(dcline_data.index)] = branch_data.iloc['frequency', i]
+        # delete row
+
+# 1166-1173
+for i in range(0, len(branch_data)):
+    if branch_data.iloc['power', i] == 'line' or branch_data.iloc['power', i] == 'cable':
+        branch_data.iloc['spec_id', i] = branch_data.iloc['branch_specification', i]
+        # branch_specifications.power = branch_data.power und ordne sie nach dem kleinsten Abstand zur angegebenen Spannung
+        # maximal 1 Eintrag
+
+# 1176-1180
+for i in range(0, len(dcline_data)):
+    if dcline_data.iloc['power', i] == dcline_specifications.iloc['specs.power', i]:
+        dcline_data.iiloc['spec_id', i] = dcline_specifications_specs.iloc['spec_id', i]
+
+# 1186-1191
+# kann weggelassen werden da man in Python Spalten nicht extra erstellen muss
+
+# 1194
+# berechne Leitungsdaten
+
+# 1195-1200
+for i in range(0, len(branch_data)):
+    if branch_data.iloc['power', i] != 'transformer':
+        branch_data.iloc['tap', i] = 0
+        branch_data.iloc['shift', i] = 0
+
+# 1204-1205
+# kann weggelassen werden da man in Python Spalten nicht extra erstellen muss
+
+# 1214-1222
+# kann weggelassen werden da man in Python Spalten nicht extra erstellen muss
+
+# 1231
+branch_data['bus_tpye'] = list(1) * len(branch_data['power'])
+
+# 1235-1243
+""" keine Ahnung
+for i in range(0, len(branch_data)):
+    abstr_values.iloc['val_int', i] 
+    if bus_data.iloc['substation_id', i] = 
+        branch_data.iloc['bus_type', i] = 3
+"""
+
+# 1249
+for i in range(0, len(power_substation)):
+    if not bus_data.ilco['substation_id', i] != NULL:
+        # delete row
+
+# 1254-1257
+for i in range(0, len(power_substation)):
+    if bus_data.iloc['substation_id', i] == power_substation.iloc['id', i]:
+        power_substation.iloc['s_long', i] = sum(bus_data.iloc['s_long_sum', i])
+
+# 1273-1276
+bus_data['bus_area'] = list(1) * len(bus_data)
+bus_data['zone'] = list(1) * len(bus_data)
+
+# 1279-1282
+bus_data['vm'] = list(1) * len(bus_data)
+bus_data['va'] = list(0) * len(bus_data)
+
+# 1285-1286
+# kann weggelassen werden da man in Python Spalten nicht extra erstellen muss
