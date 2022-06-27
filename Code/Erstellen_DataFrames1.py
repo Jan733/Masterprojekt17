@@ -185,7 +185,7 @@ df_power_line = df_power_ways_applied_changes[df_power_ways_applied_changes.isin
 #   Create table power_substation   128-148
 df_power_substation = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(['substation','sub_station','station', 'plant']).any(axis = 1)]  #select only lines where Power is 'substation','sub_station','station', 'plant'
 for x in df_power_substation.index:
-    if len(df_power_substation["geometry"][x].coords) < 4:
+    if len(df_power_substation["geometry"][x].coords) < 4:          #delete geometry with less than 4 Points (you need 4 Points for a Polygon)
         df_power_substation.drop(index=x, inplace= True)
     
 df_power_substation_geometry = df_power_substation["geometry"].agg(lambda x: Polygon(x))        # Create Polygon out of Linestrings
@@ -207,7 +207,6 @@ df_power_line["endpoint"] = ""
 for x in df_power_line.index:
     df_power_line["startpoint"] = Point(df_power_line["geometry"][x].coords[0])
     df_power_line["endpoint"] = Point(df_power_line["geometry"][x].coords[-1])
-print(len(df_power_line["geometry"][1].coords))
 
 #495
 # Create table power_circuits
