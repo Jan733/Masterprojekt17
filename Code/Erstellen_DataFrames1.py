@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 #env Datei erstellen.
 #import geoalchemy2
 #import psycopg2
-import fiona
+#import fiona
 import matplotlib
 from shapely.geometry import shape
 from shapely.geometry import Point
@@ -93,8 +93,11 @@ print(df_power_ways.head().to_string())
 
 # Erstellen Power_relations table
 df_power_relations = pd.read_csv(file_relation)
-df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"]]  # drop unwanted columns
-df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"])  # reorder columns #no circuits in relations.csv?
+df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "frequency", "Members"]]  # drop unwanted columns
+df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Members"])  # reorder columns #no circuits in relations.csv?
+
+#df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"]]  # drop unwanted columns
+#df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"])  # reorder columns #no circuits in relations.csv?
 #print(df_power_relations_new.head().to_string())
 
 #Erstellen power_relations_applied_changes
@@ -153,19 +156,19 @@ for i in range(0, len(df_ways)):
 
 #   Create the Topologie-Tabellen
 
-#--Bus Data TODO: Index
+#--Bus Data TODO: Index  line 57-65
 bus_data_columns = {"id":[], 'cnt': [], 'the_geom': [], 'voltage': [], 'substation_id': [], 'buffered': []}
 df_bus_data = pd.DataFrame(bus_data_columns)
 
-#--branch_data TODO: Index
+#--branch_data TODO: Index line 72-84
 branch_data_columns = {"branch_id":[], 'relation_id': [], 'line_id': [], 'length': [], 'way geometry': [], 'f_bus': [], 't_bus': [], 'voltage': [], 'cables': [], 'wires': [], 'frequency':[], "power":[]}
 df_branch_data = pd.DataFrame(branch_data_columns)
 
-#   Create power_ways_applied_changes
+#   Create power_ways_applied_changes       
 df_power_ways_applied_changes = df_power_ways.copy()
 #print(df_power_ways_applied_changes.head().to_string())
 
-#   Change the Voltage of 400kV
+#   Change the Voltage of 400kV     line 106
 df_power_relations_applied_changes["frequency"] = df_power_relations_applied_changes["frequency"].astype("str")  #change from string to float for the if function
 for x in df_power_relations_applied_changes["frequency"]:
     if x == "50":
@@ -173,25 +176,38 @@ for x in df_power_relations_applied_changes["frequency"]:
                                                        inplace=True)
 #print(df_power_relations_applied_changes.to_string())
 
-#   Create table power_line
+#   Create table power_line     114-118
 df_power_line = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(["line", "cable"]).any(axis = 1)]       # Select only the lines with power = cable or line
 #TODO Set a new Index!!
 #df_power_line.set_index("ID", drop=False)
 #print(df_power_line.head().to_string())
 
-#   Create table power_substation
+#   Create table power_substation   128-148
 df_power_substation = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(['substation','sub_station','station', 'plant']).any(axis = 1)]  #select only lines where Power is 'substation','sub_station','station', 'plant'
+for x in df_power_substation.index:
+    if len(df_power_substation["geometry"][x].coords) < 4:
+        df_power_substation.drop(index=x, inplace= True)
+    
 df_power_substation_geometry = df_power_substation["geometry"].agg(lambda x: Polygon(x))        # Create Polygon out of Linestrings
-
 df_power_substation = gpd.GeoDataFrame(df_power_substation, geometry = df_power_substation_geometry)    # create the gpd with the Polygons
 #for x in df_power_substation ["geometry"]:
  #   if
 
-df_power_substation = df_power_substation.set_index("ID", drop=False)
+df_power_substation = df_power_substation.reset_index()
 #print(df_power_substation.head().to_string())
 #df_power_substation.plot()         #Create the Plot
 #plt.show()
+# Check if geometry is empty :print(df.is_empty)
 
+
+# Get endpoints and Startpoints from Linestring for Power_line      173-184
+df_power_line = df_power_line.reset_index()
+df_power_line["startpoint"]=""
+df_power_line["endpoint"] = ""
+for x in df_power_line.index:
+    df_power_line["startpoint"] = Point(df_power_line["geometry"][x].coords[0])
+    df_power_line["endpoint"] = Point(df_power_line["geometry"][x].coords[-1])
+print(len(df_power_line["geometry"][1].coords))
 
 #495
 # Create table power_circuits
@@ -214,10 +230,10 @@ def change_datatype_semic(column, position):
         x = x + 1
 
 
-change_datatype_semic("cables", position) #position starts from 1
-change_datatype_semic("voltage", position)
-change_datatype_semic("circuits", position)
-change_datatype_semic("frequency", position)
+# change_datatype_semic("cables", position) #position starts from 1
+# change_datatype_semic("voltage", position)
+# change_datatype_semic("circuits", position)
+# change_datatype_semic("frequency", position)
 
 def change_datatype_wires(column, position):
     x = 0
