@@ -29,7 +29,8 @@ timer_start = time.time()
 # Erstellen der Paths
 data_path = os.getcwd()
 raw_data_dir = os.path.dirname(os.getcwd()) + "/raw_data"
-print(raw_data_dir)
+
+(raw_data_dir)
 
 #   Eingabe des / der Filenames:
 #filename_node = input("Geben sie den Node Filename ein, den Sie bearbeiten möchten (bspw.: Node.csv): ")
@@ -56,8 +57,8 @@ df_nodes = df_nodes_alt[["node_id", "power", "geometry"]].copy()  # Erstellung d
 
 #   Erstellen Relation_Members // Es fehlt noch member type N (node) oder W (way) sowie member_role
 df_relation_members_alt=pd.read_csv(file_relation)
-df_relation_members_alt["Members"]=df_relation_members_alt["Members"].apply(ast.literal_eval)       # Zugriff auf die einzelnen Werte der Liste: "Members"
-df_relation_members_alt_memb = df_relation_members_alt["Members"].apply(pd.Series).reset_index().melt(id_vars="index").dropna()[["index","value"]].set_index("index")   # Die Members werden einzelnt untereinander geschrieben und einem neuen Index zugeordnet
+df_relation_members_alt["Nodes"]=df_relation_members_alt["Nodes"].apply(ast.literal_eval)       # Zugriff auf die einzelnen Werte der Liste: "Members"
+df_relation_members_alt_memb = df_relation_members_alt["Nodes"].apply(pd.Series).reset_index().melt(id_vars="index").dropna()[["index","value"]].set_index("index")   # Die Members werden einzelnt untereinander geschrieben und einem neuen Index zugeordnet
 df_relation_members = pd.merge(df_relation_members_alt["ID"], df_relation_members_alt_memb,  right_index=True, left_index=True).rename(columns={'value':'member_id', 'ID':'relation_id'})    # Die einzelnen Members werden der relation zugeorndet
 df_relation_members["sequential_ID"]=df_relation_members.groupby(["relation_id"]).cumcount()      # Erstellung einer sequentiell ID (abzählen wie häufig eine relation nacheinander kommt, somit Anzahl der Member
 #pd.merge(pd.merge(df_relation_members_alt_memb,left_index=True,right_index=True),df_relation_members_alt[["ID"]], left_index=True, right_index=True).rename(columns={'value_x':'Members'})
@@ -87,14 +88,14 @@ df_power_ways = df_power_ways_alt_2.groupby(["ID"])["geometry"].agg(lambda x: Li
 df_power_way_columns = df_way_nodes_alt[["ID", "power", "voltage", "cables", "wires", "circuits", "frequency", "name"]].copy()      # add needed columns
 df_power_ways = pd.merge(df_power_ways, df_power_way_columns, how="left", on="ID")
 df_power_ways=gpd.GeoDataFrame(df_power_ways, geometry="geometry")      # Erstellen der Geopandasdataframes
-print(df_power_ways.head().to_string())
+#print(df_power_ways.head().to_string())
 #df_power_ways.plot()
 #plt.show()
 #gpd_ways = gpd.GeoDataFrame(df_power_ways, geometry=geometry)
 
 # Erstellen Power_relations table
 df_power_relations = pd.read_csv(file_relation)
-df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "frequency", "Members"]]  # drop unwanted columns
+df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "frequency", "Nodes"]]  # drop unwanted columns
 df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Members"])  # reorder columns
 
 #df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"]]  # drop unwanted columns
@@ -110,11 +111,11 @@ relations = {'id': [], 'version': [], 'user_id': [], 'tstamp': [], 'changeset_id
 df_relations_new = pd.DataFrame(relations)
 df_relations = pd.read_csv(file_relation)
 columns = list(df_relations.columns)
-print(columns)
+#print(columns)
 columns.remove('Unnamed: 0')
 columns.remove('ID')
-columns.remove('Members')
-print(columns)
+columns.remove('Nodes')
+#print(columns)
 df_relations_new['id'] = df_relations['ID'].copy()
 # print(len(df_ways))
 # print(len(columns))
@@ -208,6 +209,11 @@ df_power_line["endpoint"] = ""
 for x in df_power_line.index:
     df_power_line["startpoint"] = Point(df_power_line["geometry"][x].coords[0])
     df_power_line["endpoint"] = Point(df_power_line["geometry"][x].coords[-1])
+    
+    
+    
+    
+    
 
 # FUNCTIONS BEGIN
 
