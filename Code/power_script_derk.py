@@ -9,16 +9,20 @@ for i in range(0, len(power_circ_members)):
         if f_bus in bus_data.iloc['id', i] or t_bus in bus_data.iloc['id', i]:
             if bus_data.iloc['origin', i] == 'rel' and bus_data.iloc['cnt', i] == 1 and bus_data.iloc['substation_id', i] is NULL:
                 # delete row
+                power_circ_members.drop(power_circ_members.index[i])
 
 # 825-826
 for i in range(0, len(power_circ_members)):
     if power_circ_members.iloc['relation_id', i] != power_circuits['id', i]:
         # delete row
+        power_circ_members.drop(power_circ_members.index[i])
+
 
 # 829-830
 for i in range(0, len(bus_data)):
     if bus_data.iloc['origin', i] == 'rel' and bus_data.iloc['cnt', i] == 0:
         # delete row
+        bus_data.drop(bus_data.index[i])
 
 # 840
 power_line['frequency_from_relation'] = ''
@@ -36,6 +40,7 @@ power_line_sep['endpoint_geometry'] = ''
 for i in range(0, len(power_line_sep)):
     if power_line_sep.iloc['voltage', i] <= voltage_select or power_line_sep.iloc['cables', i] = NULL or power_line_sep.iloc['cables', i] == 0:
         # delete row
+        power_line_sep.drop(power_line_sep.index[i])
 
 # 935-938
 for i in range(0, len(power_line_sep)):
@@ -114,6 +119,7 @@ for i in range(0, len(branch_data)):
     if branch_data.iloc['frequency', i] == 0:
         dcline_data.loc[len(dcline_data.index)] = branch_data.iloc['frequency', i]
         # delete row
+        branch_data.drop(branch_data.index[i])
 
 # 1166-1173
 for i in range(0, len(branch_data)):
@@ -158,8 +164,9 @@ for i in range(0, len(branch_data)):
 
 # 1249
 for i in range(0, len(power_substation)):
-    if not bus_data.ilco['substation_id', i] != NULL:
+    if not bus_data.iloc['substation_id', i] != NULL:
         # delete row
+        power_substation.drop(power_substation.index[i])
 
 # 1254-1257
 for i in range(0, len(power_substation)):
