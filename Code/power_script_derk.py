@@ -103,7 +103,8 @@ for i in range(0, len(branch_data)):
     branch_data.iloc['way', i] = array(branch_data.iloc['way', i])
 
 # 1130-1133
-# branch_data['multiline'] = ST_Multi(ST_union(ways))
+# ST_Multi, ST_union
+
 
 # 1139
 branch_data['discovered'] = False
@@ -112,7 +113,9 @@ branch_data['discovered'] = False
 # in discovered: If in Python Input graph_dfs is selected True, then disconnected graphs will be deleted
 
 # 1145-1148
-# what is ST_MakeLine
+# wie mache ich das mit f_bus and t_bus????
+# https://gis.stackexchange.com/questions/401311/creating-linestring-from-two-points-and-finding-mid-point
+branch_data['simple_geom'] = bus_data.apply(lambda row: LineString([row['id'], row['id']]), axis=1)
 
 # 1154-1157
 for i in range(0, len(branch_data)):
