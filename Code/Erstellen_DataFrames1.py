@@ -25,8 +25,9 @@ timer_start = time.time()
 
 #print(df.head().to_string())
 #print(df.to_string())
+
 # Erstellen der Paths
-data_path=os.getcwd()
+data_path = os.getcwd()
 raw_data_dir = os.path.dirname(os.getcwd()) + "/raw_data"
 print(raw_data_dir)
 
@@ -37,7 +38,7 @@ print(raw_data_dir)
 
 #   Zugriff auf die CSV Dateien.
 file_node = raw_data_dir + "/node_test.csv"
-file_way = raw_data_dir +"/way_test.csv"
+file_way = raw_data_dir + "/way_test.csv"
 file_relation = raw_data_dir + "/relation_test.csv"
 
 #   Erstellen Nodes
@@ -94,10 +95,10 @@ print(df_power_ways.head().to_string())
 # Erstellen Power_relations table
 df_power_relations = pd.read_csv(file_relation)
 df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "frequency", "Members"]]  # drop unwanted columns
-df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Members"])  # reorder columns #no circuits in relations.csv?
+df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Members"])  # reorder columns
 
 #df_power_relations_new = df_power_relations[["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"]]  # drop unwanted columns
-#df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"])  # reorder columns #no circuits in relations.csv?
+#df_power_relations_new = df_power_relations_new.reindex(columns=["ID", 'voltage', "cables", "wires", "circuits", "frequency", "Nodes"])  # reorder columns 5
 #print(df_power_relations_new.head().to_string())
 
 #Erstellen power_relations_applied_changes
@@ -185,7 +186,7 @@ df_power_line = df_power_ways_applied_changes[df_power_ways_applied_changes.isin
 #   Create table power_substation   128-148
 df_power_substation = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(['substation','sub_station','station', 'plant']).any(axis = 1)]  #select only lines where Power is 'substation','sub_station','station', 'plant'
 for x in df_power_substation.index:
-    if len(df_power_substation["geometry"][x].coords) < 4:
+    if len(df_power_substation["geometry"][x].coords) < 4:          #delete geometry with less than 4 Points (you need 4 Points for a Polygon)
         df_power_substation.drop(index=x, inplace= True)
     
 df_power_substation_geometry = df_power_substation["geometry"].agg(lambda x: Polygon(x))        # Create Polygon out of Linestrings
@@ -207,52 +208,135 @@ df_power_line["endpoint"] = ""
 for x in df_power_line.index:
     df_power_line["startpoint"] = Point(df_power_line["geometry"][x].coords[0])
     df_power_line["endpoint"] = Point(df_power_line["geometry"][x].coords[-1])
-print(len(df_power_line["geometry"][1].coords))
+
+# FUNCTIONS BEGIN
+
+def change_datatype_semic(df, column, position):  # (dataframe of your wish, column, position when more than one value)
+    for x in df[column]:
+        try:
+            df.iloc[x, df.columns.get_loc(column)] = int(
+                df.at[x, column].split(";", position)[
+                    position - 1])  # value at *position* will be considered, if there are more than one
+        except ValueError:
+            df.iloc[x, df.columns.get_loc(column)] = ""
+        value = df.iloc[x, df.columns.get_loc(column)]
+        return value
+
+
+def change_datatype_wires(df, column, position):  # (dataframe of your wish, column, position when more than one value)
+    for x in df[column]:
+        wire_type = df.at[x, column].split(";", position)[
+            position - 1]  # wire_type at *position* will be considered, if there are more than one
+        match wire_type:
+            case "quad":
+                df.iloc[x, df.columns.get_loc(column)] = 4
+            case "triple":
+                df.iloc[x, df.columns.get_loc(column)] = 3
+            case "double":
+                df.iloc[x, df.columns.get_loc(column)] = 2
+            case "single":
+                df.iloc[x, df.columns.get_loc(column)] = 1
+            case _:
+                df.iloc[
+                    x, df.columns.get_loc(column)] = ""  # works only for quad, triple, double, single
+        value = df.iloc[x, df.columns.get_loc(column)]
+        return value
+
+def read_circuits():
+    for x in df_power_line["cables"]:
+        frequency_value = df_power_line["frequency"][x]
+        numb_volt_lev = df_power_line["numb_volt_lev"][x]
+        if "cable" in df_power_line["power"].values:
+            if np.isnan(df_power_line["cables"][x]) is True \
+                    and np.isnan(df_power_line["circuits"][x]) is False and ";" not in df_power_line["circuits"][x] \
+                    and (df_power_line["numb_volt_lev"][x] == 1 or
+                         (df_power_line["numb_volt_lev"][x] == change_datatype_semic(df_power_line, "circuits", 1) and
+                         len(df_power_line["frequency"]) == df_power_line["numb_volt_lev"][x])):
+                match frequency_value:
+                    case 50:
+                        cables_per_circuit = 3
+                    case 0:
+                        cables_per_circuit = 2
+                    case 16.7:
+                        cables_per_circuit = 2
+                    case _:
+                        cables_per_circuit = ""
+                match numb_volt_lev:
+                    case 1:
+                        df_power_line["cables_array"][x] = cables_per_circuit * change_datatype_semic(df_power_line, "circuits",1) # in functions steht 1 statt x?
+                    case numb_volt_lev if (numb_volt_lev > 1 and numb_volt_lev == change_datatype_semic(df_power_line, "circuits", 1)):
+                        for i in numb_volt_lev:
+                            df_power_line["cables_array"][i] = cables_per_circuit
+
+def read_wires():
+    for x in df_power_line["wires"]:
+        if np.isnan(df_power_line["wires"][x]) is False and "line" in df_power_line["power"].values and ";" not in \
+                df_power_line["power"][x]:
+            for i in df_power_line["numb_volt_lev"]:
+                df_power_line["wires_array"][i] = change_datatype_wires(df_power_line, "wires", 1)
+
+def read_frequency():  # vielleicht noch unvollständig
+    for x in df_power_line["frequency"]:
+        if np.isnan(df_power_line["frequency"][x]) is False and ";" not in df_power_line["frequency"][x] and isinstance(
+                change_datatype_semic(df_power_line, "frequency", 1), int) is True:
+            for i in df_power_line["numb_volt_lev"]:
+                df_power_line["frequency_array"][i] = change_datatype_wires(df_power_line, "frequency", 1)
+
+def st_length(): # Calculation of length of cables
+    for x in df_power_ways["geometry"]:
+        df_power_line["length"][x] = df_power_ways["geometry"][x].length
+
+
+# FUNCTIONS END
+
+# 396
+# Power_line: Read Wires
+# Add wires_array in power_line # Anzahl der Leiterseile im Bündelleiter pro Spannungsebene
+
+df_power_line["wires_array"] = " "
+read_wires()
+
+# 403
+# Power_line: Read Frequency
+# ...
+
+df_power_line["frequency_array"] = " "
+read_frequency()
+
+
+# 425
+# CIRCUITS
+# Create CIRCUITS from CABLES
+
+read_circuits()
+
+# 431
+# Calculating Length of cables of geopandas series and
+# importing it into an array "length"
+
+df_power_line["length"] = " "
+st_length()
+
 
 #495
 # Create table power_circuits
-power_circuits = df_power_relations_applied_changes  # braucht man das PK?
+power_circuits = df_power_relations_applied_changes
 
 #503
 # Create table power_circ_members #gets information from power_line table
+# Delete members, when deleted in power_circuits
 power_circ_members = {'relation_id': [], 'line_id': []}  # line_id of relation members
 
-#515
-#Change datatypes to int
-def change_datatype_semic(column, position):
-    x = 0
-    while x < len(power_circuits[column]):
-        try:
-            power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = int(
-                power_circuits.at[x, column].split(";", position)[position-1])  # value at *position* will be considered, if there are more than one
-        except ValueError as ex:
-            power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 0
-        x = x + 1
 
+# 515
+# Change datatypes to int
 
-# change_datatype_semic("cables", position) #position starts from 1
-# change_datatype_semic("voltage", position)
-# change_datatype_semic("circuits", position)
-# change_datatype_semic("frequency", position)
+change_datatype_semic(df_power_circuits, "cables", 1) #position starts from 1
+change_datatype_semic(df_power_circuits, "voltage", 1)
+change_datatype_semic(df_power_circuits, "circuits", 1)
+change_datatype_semic(df_power_circuits, "frequency", 1)
+change_datatype_wires("wires", 1)  # position starts from 1
 
-def change_datatype_wires(column, position):
-    x = 0
-    while x < len(power_circuits[column]):
-        wire_type = power_circuits.at[x, column].split(";", position)[position-1]  # wire_type at *position* will be considered, if there are more than one
-        match wire_type:
-            case "quad":
-                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 4
-            case "triple":
-                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 3
-            case "double":
-                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 2
-            case "single":
-                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 1
-            case _:
-                power_circuits.iloc[x, power_circuits.columns.get_loc(column)] = 0 #works only for quad, triple, double, single
-        x = x + 1
-
-change_datatype_wires("wires", 1)#position starts from 1
 
 ''' #print more rows
 pd.set_option('display.max_columns', None) 
