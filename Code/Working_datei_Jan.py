@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jul  5 18:44:01 2022
+
+@author: Jan
+"""
+
 # Derk Test
 
 import geopandas as gpd
@@ -14,7 +21,7 @@ from shapely.geometry import shape
 from shapely.geometry import Point
 from shapely.geometry import LineString
 from shapely.geometry import Polygon
-from shapely.ops import polygonize
+from shapely.ops import polygonize, nearest_points
 import os
 from shapely import wkt
 import ast
@@ -201,171 +208,81 @@ df_power_substation = df_power_substation.reset_index()
 #plt.show()
 # Check if geometry is empty :print(df.is_empty)
 
+#   152 create Points in the center of the Polygons, If its outside the nearest point in the polygon to the center is chosen.
+df_power_substation["Point"]= ""
+
+def point_inside_geometry(df):
+    for x in df.index:
+        geometry = df.loc[x, "geometry"]
+        var_cent = geometry.centroid
+        var_result = var_cent
+        
+    
+        if geometry.intersects(var_result) == False:
+            p1, p2 = nearest_points (geometry, var_result)
+            var_result = p1
+            
+        df.loc[x, "Point"] = var_result
+
+point_inside_geometry(df_power_substation)
+
+
+#   156     Nochmal genau angucken
+# for x in df_power_substation.index:
+#     geometry=df_power_substation.loc[x, "geometry"]
+#     for y in df_power_substation.index:
+#         point = df_power_substation.loc[y, "Point"]
+#         if geometry.contains(point) == True and df_power_substation.loc[x, "power"] == "plant" and df_power_substation.loc[x, "ID"] != df_power_substation.loc[y, "ID"]:
+#             df_power_substation.drop(index = x, inplace =True)
+            
+    
+# for y in df_power_substation.index:
+#     point = df_power_substation.loc[y, "Point"]
+#     geometry_y = df_power_substation.loc[y, "geometry"]
+#     for y in df_power_substation.index:
+#         geometry=df_power_substation.loc[x, "geometry"]
+#         if geometry.contains(point) == True and (df_power_substation.loc[y, "power"] == "plant" or (df_power_substation.loc[y, "power"] != "plant" and df_power_substation.loc[x, "power"] != "plant")) and df_power_substation.loc[x, "ID"] != df_power_substation.loc[y, "ID"] and geometry_y.area < geometry.area:
+#             df_power_substation.drop(index = y, inplace =True)
+            
+
+
 
 # Get endpoints and Startpoints from Linestring for Power_line      173-184
 df_power_line = df_power_line.reset_index()
 df_power_line["startpoint"]=""
 df_power_line["endpoint"] = ""
 for x in df_power_line.index:
-    df_power_line["startpoint"] = Point(df_power_line["geometry"][x].coords[0])
-    df_power_line["endpoint"] = Point(df_power_line["geometry"][x].coords[-1])
-    
-    
-    
-    
-    
-
-# FUNCTIONS BEGIN
-
-def change_datatype_semic(df, column, position):  # (dataframe of your wish, column, position when more than one value)
-    for x in df[column]:
-        try:
-            df.iloc[x, df.columns.get_loc(column)] = int(
-                df.at[x, column].split(";", position)[
-                    position - 1])  # value at *position* will be considered, if there are more than one
-        except ValueError:
-            df.iloc[x, df.columns.get_loc(column)] = ""
-        value = df.iloc[x, df.columns.get_loc(column)]
-        return value
+    df_power_line.loc[x, "startpoint"] = Point(df_power_line["geometry"][x].coords[0])
+    df_power_line.loc[x, "endpoint"] = Point(df_power_line["geometry"][x].coords[-1])
 
 
-def change_datatype_wires(df, column, position):  # (dataframe of your wish, column, position when more than one value)
-    for x in df[column]:
-        wire_type = df.at[x, column].split(";", position)[
-            position - 1]  # wire_type at *position* will be considered, if there are more than one
-        match wire_type:
-            case "quad":
-                df.iloc[x, df.columns.get_loc(column)] = 4
-            case "triple":
-                df.iloc[x, df.columns.get_loc(column)] = 3
-            case "double":
-                df.iloc[x, df.columns.get_loc(column)] = 2
-            case "single":
-                df.iloc[x, df.columns.get_loc(column)] = 1
-            case _:
-                df.iloc[
-                    x, df.columns.get_loc(column)] = ""  # works only for quad, triple, double, single
-        value = df.iloc[x, df.columns.get_loc(column)]
-        return value
+#   243
+df_power_line["point_substation_id_1"]=np.empty((len(df_power_line), 0)).tolist()
+df_power_line["point_substation_id_2"]=np.empty((len(df_power_line), 0)).tolist()
 
-def read_circuits():
-    for x in df_power_line["cables"]:
-        frequency_value = df_power_line["frequency"][x]
-        numb_volt_lev = df_power_line["numb_volt_lev"][x]
-        if "cable" in df_power_line["power"].values:
-            if np.isnan(df_power_line["cables"][x]) is True \
-                    and np.isnan(df_power_line["circuits"][x]) is False and ";" not in df_power_line["circuits"][x] \
-                    and (df_power_line["numb_volt_lev"][x] == 1 or
-                         (df_power_line["numb_volt_lev"][x] == change_datatype_semic(df_power_line, "circuits", 1) and
-                         len(df_power_line["frequency"]) == df_power_line["numb_volt_lev"][x])):
-                match frequency_value:
-                    case 50:
-                        cables_per_circuit = 3
-                    case 0:
-                        cables_per_circuit = 2
-                    case 16.7:
-                        cables_per_circuit = 2
-                    case _:
-                        cables_per_circuit = ""
-                match numb_volt_lev:
-                    case 1:
-                        df_power_line["cables_array"][x] = cables_per_circuit * change_datatype_semic(df_power_line, "circuits",1) # in functions steht 1 statt x?
-                    case numb_volt_lev if (numb_volt_lev > 1 and numb_volt_lev == change_datatype_semic(df_power_line, "circuits", 1)):
-                        for i in numb_volt_lev:
-                            df_power_line["cables_array"][i] = cables_per_circuit
+for x in df_power_line.index:
+    start_point = df_power_line.loc[x, "startpoint"]
+    end_point = df_power_line.loc[x, "endpoint"]
+    for y in df_power_substation.index:
+        poly = df_power_substation.loc[y, "geometry"]
+        if start_point.within(poly) == True:
+            df_power_line.loc[x, "point_substation_id_1"].append(df_power_substation.loc[y, "ID"])
+        if end_point.within(poly) == True:
+            df_power_line.loc[x, "point_substation_id_2"].append(df_power_substation.loc[y, "ID"])
 
-def read_wires():
-    for x in df_power_line["wires"]:
-        if np.isnan(df_power_line["wires"][x]) is False and "line" in df_power_line["power"].values and ";" not in \
-                df_power_line["power"][x]:
-            for i in df_power_line["numb_volt_lev"]:
-                df_power_line["wires_array"][i] = change_datatype_wires(df_power_line, "wires", 1)
-
-def read_frequency():  # vielleicht noch unvollständig
-    for x in df_power_line["frequency"]:
-        if np.isnan(df_power_line["frequency"][x]) is False and ";" not in df_power_line["frequency"][x] and isinstance(
-                change_datatype_semic(df_power_line, "frequency", 1), int) is True:
-            for i in df_power_line["numb_volt_lev"]:
-                df_power_line["frequency_array"][i] = change_datatype_wires(df_power_line, "frequency", 1)
-
-def st_length(): # Calculation of length of cables
-    for x in df_power_ways["geometry"]:
-        df_power_line["length"][x] = df_power_ways["geometry"][x].length
-
-
-# FUNCTIONS END
-
-# 396
-# Power_line: Read Wires
-# Add wires_array in power_line # Anzahl der Leiterseile im Bündelleiter pro Spannungsebene
-
-df_power_line["wires_array"] = " "
-read_wires()
-
-# 403
-# Power_line: Read Frequency
-# ...
-
-df_power_line["frequency_array"] = " "
-read_frequency()
-
-
-# 425
-# CIRCUITS
-# Create CIRCUITS from CABLES
-
-read_circuits()
-
-# 431
-# Calculating Length of cables of geopandas series and
-# importing it into an array "length"
-
-df_power_line["length"] = " "
-st_length()
-
-
-#495
-# Create table power_circuits
-power_circuits = df_power_relations_applied_changes
-
-#503
-# Create table power_circ_members #gets information from power_line table
-# Delete members, when deleted in power_circuits
-power_circ_members = {'relation_id': [], 'line_id': []}  # line_id of relation members
-
-
-# 515
-# Change datatypes to int
-
-change_datatype_semic(df_power_circuits, "cables", 1) #position starts from 1
-change_datatype_semic(df_power_circuits, "voltage", 1)
-change_datatype_semic(df_power_circuits, "circuits", 1)
-change_datatype_semic(df_power_circuits, "frequency", 1)
-change_datatype_wires("wires", 1)  # position starts from 1
-
-
-''' #print more rows
-pd.set_option('display.max_columns', None) 
-pd.set_option('display.width', 100000000)
-pd.set_option('display.max_rows', None)
-'''
-
-#536
-#ASSUMPTION: Voltage of 110kV to 60kV
-for x in power_circuits["voltage"]:
-    power_circuits['voltage'].mask(power_circuits['voltage'] == 110000, 60000, inplace=True)
-
-#print(power_circuits)
-#print(power_circuits.head().to_string())
+for x in df_power_line.index:
+    start_id = df_power_line.loc[x, "point_substation_id_1"]
+    end_id = df_power_line.loc[x, "point_substation_id_2"]   
+    print(start_id, end_id)
+    if start_id == end_id:
+        df_power_line.drop(index=x , inplace= True)
 
 
 
-#Processingtime in minutes
+
+
 timer_end = time.time()
 print('Runtime ' + str(round((timer_end-timer_start)/60, 2)) + ' Minutes')
 
-
-
-
-
-
+    
+    
