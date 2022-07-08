@@ -274,12 +274,33 @@ for x in df_power_line.index:
     start_id = df_power_line.loc[x, "point_substation_id_1"]
     end_id = df_power_line.loc[x, "point_substation_id_2"]   
     print(start_id, end_id)
-    if start_id == end_id:
+    if str(start_id) == str(end_id):
         df_power_line.drop(index=x , inplace= True)
+        
+#   Untersuchung Spannungsebene     266
+
+df_power_line["numb_volt_lev"]=""
+
+for x in df_power_line.index:
+    length_voltage = df_power_line.loc[x, "voltage"]
+    length_voltage_2 =df_power_line.loc[x, "voltage"].replace(";", "")
+    df_power_line.loc[x, "numb_volt_lev"]= len(str(length_voltage))-len(str(length_voltage_2))+1
+    print (length_voltage, length_voltage_2)
+
+for x in df_power_line.index:    
+    df_power_line.loc[x, "numb_volt_lev2"]=df_power_line.loc[x, "voltage"].replace(";", "")
+    df_power_line.loc[x, "numb_volt_lev3"] = df_power_line.loc[x, "voltage"]
 
 
+#   277
 
+df_power_line["voltage_array_1"]=""
+df_power_line["voltage_array_2"]=""
+df_power_line["voltage_array_3"]=""
+df_power_line["voltage_array_4"]=""
 
+for x in df_power_line.index:
+    df_power_line.loc[x, "voltage_array_1"]
 
 timer_end = time.time()
 print('Runtime ' + str(round((timer_end-timer_start)/60, 2)) + ' Minutes')
