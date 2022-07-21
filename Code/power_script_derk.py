@@ -96,7 +96,7 @@ def otg_calc_max_node_power(bus_data, branch_data, dcline_data):
     }
 
     for i in range(0, len(bus_data)):
-        if not bus_data.iloc["substation_id", i] is NULL:
+        if not bus_data.iloc["substation_id", i] is NULL: #Check what NULL is in our case
             v_bus["id"] = bus_data.iloc["id", i]
             for j in range(0, len(branch_data)):
 
