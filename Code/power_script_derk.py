@@ -10,6 +10,8 @@ branch_data = pd.DataFrame
 dcline_data = pd.DataFrame
 dcline_specifications = pd.DataFrame
 power_substation = pd.DataFrame
+dcline_specifications_specs = pd.DataFrame
+power_circuits = pd.DataFrame
 # voltage_select ist vorgegebene SPannung
 
 # Berechnet due genauen Leitungsspezifikationen
@@ -47,7 +49,7 @@ def otg_calc_branch_specifications(branch_data, branch_specifications, bus_data,
 
     return branch_data
 
-    """
+"""
     for i in range(0, len(branch_data)):
         if branch_data.iloc['power', i] == 'line' or branch_data.iloc['power', i] == 'cable':
             # write all relevant data from branch_dat to v_spec dictionary
@@ -81,7 +83,8 @@ def otg_calc_branch_specifications(branch_data, branch_specifications, bus_data,
                     branch_data.iloc["br_x", i] = v_X / v_Z_base
                     branch_data.iloc["S_long", i] = v_S_long
     return branch_data
-    """
+"""
+
 
 def otg_calc_dcline_specifications(dcline_data, dcline_specifications):
     dict_v_dcline = {
@@ -119,7 +122,7 @@ def otg_calc_dcline_specifications(dcline_data, dcline_specifications):
 
     return dcline_data
 
-    """
+"""
     for i in range(0, len(dcline_data)):
         v_dcline["branch_id"]   =   dcline_data.iloc["branch_id", i]
         v_dcline["spec_id"]     =   dcline_data.iloc["spec_id", i]
@@ -142,7 +145,7 @@ def otg_calc_dcline_specifications(dcline_data, dcline_specifications):
             dcline_data.iloc["pmax", j] = v_pmax
 
     return dcline_data
-    """
+"""
 
 
 def otg_calc_max_node_power(bus_data, branch_data, dcline_data):
@@ -168,7 +171,7 @@ def otg_calc_max_node_power(bus_data, branch_data, dcline_data):
 
     return bus_data
 
-    """
+"""
     for i in range(0, len(bus_data)):
         if not bus_data.iloc["substation_id", i] is NULL: #Check what NULL is in our case
             v_bus["id"] = bus_data.iloc["id", i]
@@ -189,7 +192,7 @@ def otg_calc_max_node_power(bus_data, branch_data, dcline_data):
                 if bus_data.iloc["id", j] == v_bus["id"]:
                     bus_data.iloc["id", j] = v_s_long_sum
     return bus_data
-    """
+"""
 
 
 def otg_calc_transformer_specifications(branch_data, bus_data, transformer_specifications, abstr_values):
@@ -234,8 +237,8 @@ def otg_calc_transformer_specifications(branch_data, bus_data, transformer_speci
     branch_data.loc[branch_data["branch_id"] == v_branch["branch_id"], "br_x"] = v_X_TOS_all / v_Z_base
     branch_data.loc[branch_data["branch_id"] == v_branch["branch_id"], "br_b"] = 0
     branch_data.loc[(branch_data["branch_id"] == v_branch["branch_id"]) and
-                    (transformer_specifications.loc["U_OS"] == v_U_OS) and
-                    transformer_specifications.loc["U_US"] == v_U_US,
+                    (transformer_specifications["U_OS"] == v_U_OS) and
+                    transformer_specifications["U_US"] == v_U_US,
                     "S_long"] = 10 ^ 6 * v_numb_transformers * transformer_specifications.loc["S_MVA"]
     branch_data.loc[branch_data["branch_id"] == v_branch["branch_id"], "tap"] = 1
     branch_data.loc[branch_data["branch_id"] == v_branch["branch_id"], "shift"] = 0
@@ -243,7 +246,7 @@ def otg_calc_transformer_specifications(branch_data, bus_data, transformer_speci
 
     return branch_data
 
-    """   
+"""   
     for i in range(0, len(branch_data)):
         if branch_data.iloc["power", i] == 'transformer':
             v_branch["branch_id"] = branch_data.iloc["branch_id", j]
@@ -288,18 +291,47 @@ def otg_calc_transformer_specifications(branch_data, bus_data, transformer_speci
                     branch_data.iloc["numb_transformers", j] = v_numb_transformers
 
     return branch_data
-    """
+"""
+
+
+def otg_seperate_voltage_levels(): # noch in Bearbeitung
+    dict_v_line = {
+        "way": [],
+        "power": [],
+        "numb_volt_lev": [],
+        "voltage_array": [],
+        "cables_array": [],
+        "wires_array": [],
+        "frequency_array": [],
+        "length": [],
+        "startpoint": [],
+        "endpoint": [],
+    }
+    v_line = pd.DataFrame(dict_v_line)
+
+    v_line["way"]               =   power_line["way"]
+    v_line["power"]             =   power_line["power"]
+    v_line["numb_volt_lev"]     =   power_line["numb_volt_lev"]
+    v_line["voltage_array"]     =   power_line["voltage_array"]
+    v_line["cables_array"]      =   power_line["cables_array"]
+    v_line["wires_array"]       =   power_line["wires_array"]
+    v_line["frequency_array"]   =   power_line["frequency_array"]
+    v_line["length"]            =   power_line["length"]
+    v_line["startpoint"]        =   power_line["startpoint"]
+    v_line["endpoint"]          =   power_line["endpoint"]
+
+
 
 
 # 806-809:
 # otg_power_circuits_problem_tg muss noch geschrieben werden
 
 # 810-823
-if power_circuits.loc["id"] == power_circ_members.loc["relation_id"]:
-    if power_circ_members["f_bus"] in bus_data.loc['id'] or power_circ_members["t_bus"] in bus_data.loc['id']:
-        if bus_data.loc['origin'] == 'rel' and bus_data.loc['cnt'] == 1 and bus_data.loc['substation_id'] is NULL:
-            # delete row
-            power_circ_members.drop()
+power_circ_members.drop(power_circ_members.loc[:, (power_circuits["id"] == power_circ_members["relation_id"]) and
+                                               ((power_circ_members["f_bus"] in bus_data.loc['id']) or (power_circ_members["t_bus"] in bus_data.loc['id'])) and
+                                               (bus_data.loc['origin'] == 'rel') and
+                                               (bus_data.loc['cnt'] == 1) and
+                                               (bus_data.loc['substation_id'] is NULL)])
 """
 for i in range(0, len(power_circ_members)):
     if id in power_circ_members.iloc['relation_id', i]:
@@ -402,7 +434,7 @@ del branch_data['buffered']
 del branch_data['origin']
 
 # 1063-1064
-del branch_data.loc[(branch_data['frequency'] != 50) or
+del branch_data.loc[:, (branch_data['frequency'] != 50) or
                     (branch_data['frequency'] = NULL)]
 """               
 for i in range(0, len(branch_data)):
@@ -411,7 +443,7 @@ for i in range(0, len(branch_data)):
 """
 
 # 1069
-del branch_data.loc[branch_data["cables"] <= 1]
+del branch_data.loc[:, branch_data["cables"] <= 1]
 """
 for i in range(0, len(branch_data)):
     if branch_data.iloc['cables', i] <= 1:
@@ -419,7 +451,7 @@ for i in range(0, len(branch_data)):
 """
 
 # 1072-1073
-del bus_data.loc[(bus_data["id"] in branch_data["f_bus"]) and
+del bus_data.loc[:, (bus_data["id"] in branch_data["f_bus"]) and
                  (bus_data["id"] in branch_data["t_bus"])]
 """
 for i in range(0, len(branch_data)):
@@ -453,7 +485,6 @@ branch_data['discovered'] = False
 # in discovered: If in Python Input graph_dfs is selected True, then disconnected graphs will be deleted
 
 # 1145-1148
-# wie mache ich das mit f_bus and t_bus????
 # https://gis.stackexchange.com/questions/401311/creating-linestring-from-two-points-and-finding-mid-point
 branch_data['simple_geom'] = bus_data.apply(lambda row: LineString([row['id'], row['id']]), axis=1)
 
@@ -470,6 +501,7 @@ for i in range(0, len(branch_data)):
 
 # 1166-1173
 # falsch
+# branch_specifications ist liste mit Norm-Spannungen: (220, 380, 400) kV
 for i in range(0, len(branch_data)):
     if branch_data.iloc['power', i] == 'line' or branch_data.iloc['power', i] == 'cable':
         branch_data.iloc['spec_id', i] = branch_data.iloc['branch_specification', i]
