@@ -178,12 +178,10 @@ df_power_ways_applied_changes = df_power_ways.copy()
 #print(df_power_ways_applied_changes.head().to_string())
 
 #   Change the Voltage of 400kV     line 106
-df_power_relations_applied_changes["frequency"] = df_power_relations_applied_changes["frequency"].astype("str")  #change from string to float for the if function
-for x in df_power_relations_applied_changes["frequency"]:
-    if x == "50":
-        df_power_relations_applied_changes['voltage'].mask(df_power_relations_applied_changes['voltage'] == 400000, 380000,
-                                                       inplace=True)
-#print(df_power_relations_applied_changes.to_string())
+df_power_relations_applied_changes["frequency"] = df_power_relations_applied_changes["frequency"].astype("str")  #change from float to string for the if function
+
+df_power_relations_applied_changes["voltage"].loc[(df_power_relations_applied_changes["frequency"]== "50") & (df_power_relations_applied_changes["voltage"]=="400000")] ="380000"
+
 
 #   Create table power_line     114-118
 df_power_line = df_power_ways_applied_changes[df_power_ways_applied_changes.isin(["line", "cable"]).any(axis = 1)]       # Select only the lines with power = cable or line
@@ -209,25 +207,52 @@ df_power_substation = df_power_substation.reset_index()
 # Check if geometry is empty :print(df.is_empty)
 
 #   152 create Points in the center of the Polygons, If its outside the nearest point in the polygon to the center is chosen.
-df_power_substation["Point"]= ""
+df_power_substation["Point"]=""
+df_power_substation["var_cent"] = df_power_substation["geometry"].centroid
+df_power_substation["var_result"] = df_power_substation["var_cent"]
+df_power_substation["point_intersect"]  = df_power_substation["geometry"].intersects(df_power_substation["var_result"])
+df_power_substation["Point"].loc[df_power_substation["point_intersect"]==True] = df_power_substation["var_result"].loc[df_power_substation.index]
 
-def point_inside_geometry(df):
-    for x in df.index:
-        geometry = df.loc[x, "geometry"]
-        var_cent = geometry.centroid
-        var_result = var_cent
+df_point_outside = pd.DataFrame()
+df_point_outside["geometry"] = df_power_substation["geometry"].loc[df_power_substation["point_intersect"] ==False]
+df_point_outside["var_result"] = df_power_substation["var_cent"].loc[df_power_substation["point_intersect"]==False]
+
+for x in df_point_outside.index:
+    geometry = df_point_outside.loc[x, "geometry"]
+    p1, p2 = nearest_points (geometry, df_point_outside.loc[x, "var_result"])
+    var_result = p1
+    df_power_substation.loc[x, "Point"] = var_result
+
+   #####    Funktion umgesetzt 
+# def point_inside_geometry(df):
+#     for x in df.point_outside.index:
+#         geometry = df.loc[x, "geometry"]
+#         var_cent = geometry.centroid
+#         var_result = var_cent
         
     
-        if geometry.intersects(var_result) == False:
-            p1, p2 = nearest_points (geometry, var_result)
-            var_result = p1
+#         if geometry.intersects(var_result) == False:
+#             p1, p2 = nearest_points (geometry, var_result)
+#             var_result = p1
             
-        df.loc[x, "Point"] = var_result
+#         df.loc[x, "Point"] = var_result
 
-point_inside_geometry(df_power_substation)
+# point_inside_geometry(df_power_substation)
 
 
-#   156     Nochmal genau angucken
+#for y in df_power_substation.index:
+#    geometry=df_power_substation["geometry"]
+#    point = df_power_substation.loc[y, "Point"]
+#    if geometry.contains(point) == True and df_power_substation["power"] == "plant" and df_power_substation["ID"] != df_power_substation.loc[y, "ID"]:
+#        df_power_substation.drop(index = y, inplace =True)
+#df_power_substation.set_index("index", inplace=True)
+#df_power_substation["contains"] = ""
+#df_power_substation["contains"] = df_power_substation.agg(lambda y: df_power_substation.loc["geometry"].contains(df_power_substation.iloc[y, "Point"]).loc[(df_power_substation["power"] == "plant") & (df_power_substation["ID"] != df_power_substation.iloc[y, "ID"])])
+#df_power_substation["contains"] = df_power_substation.loc["geometry"].contains(df_power_substation.loc[y, "Point"]).loc[(df_power_substation["power"] == "plant") & (df_power_substation["ID"] != df_power_substation.loc[y, "ID"])].drop(inplace=True)
+#df_power_substation["power"].loc[(df_power_substation["power"]=="plant") & (df_power_substation["geometry"].contains(df_power_substation.loc[484, "Point"])==False) & (df_power_substation["ID"]!=df_power_substation.loc[484, "ID"])]
+#df_power_substation["ID"].loc[(df_power_substation["power"]=="plant") & (df_power_substation["geometry"].contains(df_power_substation.loc[y, "Point"])==False) & (df_power_substation["ID"]!=df_power_substation.loc[484, "ID"])]
+
+# #   156     Nochmal genau angucken
 # for x in df_power_substation.index:
 #     geometry=df_power_substation.loc[x, "geometry"]
 #     for y in df_power_substation.index:
@@ -235,6 +260,7 @@ point_inside_geometry(df_power_substation)
 #         if geometry.contains(point) == True and df_power_substation.loc[x, "power"] == "plant" and df_power_substation.loc[x, "ID"] != df_power_substation.loc[y, "ID"]:
 #             df_power_substation.drop(index = x, inplace =True)
             
+# #df_power_substation["geometry"].contains(df_power_substation["Point"])
     
 # for y in df_power_substation.index:
 #     point = df_power_substation.loc[y, "Point"]
@@ -251,56 +277,153 @@ point_inside_geometry(df_power_substation)
 df_power_line = df_power_line.reset_index()
 df_power_line["startpoint"]=""
 df_power_line["endpoint"] = ""
-for x in df_power_line.index:
-    df_power_line.loc[x, "startpoint"] = Point(df_power_line["geometry"][x].coords[0])
-    df_power_line.loc[x, "endpoint"] = Point(df_power_line["geometry"][x].coords[-1])
+df_power_line["startpoint"] = df_power_line["geometry"].agg(lambda x: Point(x.coords[0]))
+df_power_line["endpoint"] = df_power_line["geometry"].agg(lambda x: Point(x.coords[-1]))
+
 
 
 #   243
 df_power_line["point_substation_id_1"]=np.empty((len(df_power_line), 0)).tolist()
 df_power_line["point_substation_id_2"]=np.empty((len(df_power_line), 0)).tolist()
+df_power_line["point_substation_id_start"]=np.empty((len(df_power_line), 0)).tolist()
+df_within_start = pd.DataFrame
+df_within_end = pd.DataFrame
 
-for x in df_power_line.index:
-    start_point = df_power_line.loc[x, "startpoint"]
-    end_point = df_power_line.loc[x, "endpoint"]
-    for y in df_power_substation.index:
-        poly = df_power_substation.loc[y, "geometry"]
-        if start_point.within(poly) == True:
-            df_power_line.loc[x, "point_substation_id_1"].append(df_power_substation.loc[y, "ID"])
-        if end_point.within(poly) == True:
-            df_power_line.loc[x, "point_substation_id_2"].append(df_power_substation.loc[y, "ID"])
 
-for x in df_power_line.index:
-    start_id = df_power_line.loc[x, "point_substation_id_1"]
-    end_id = df_power_line.loc[x, "point_substation_id_2"]   
-    print(start_id, end_id)
-    if str(start_id) == str(end_id):
-        df_power_line.drop(index=x , inplace= True)
+#df_within_start= df_power_substation["geometry"].agg(lambda x: df_power_line["startpoint"].within(x))==True 
+#df_contains_start = df_power_line["startpoint"].agg(lambda x: df_power_substation["geometry"].contains(x))==True 
+
+# df_point_contains_start = df_contains_start.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+# df_power_line["point_within_start"] = df_point_contains_start
+# df_point_contains_split = pd.DataFrame(df_power_line["point_within_start"].to_list())
+# df_point_contains_split=df_point_contains_split.fillna(0)
+
+# df_point_within_start = ((df_within_start == True).idxmax(axis=1))
+
+# #df_point_within_start = df_within_start.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+# df_power_substation["point_within_start"] = df_point_within_start
+# #df_point_within_split = pd.DataFrame(df_power_substation["point_within_start"].to_list())
+# #df_point_within_split=df_point_within_split.fillna(0)
+# #x = df_power_substation["point_within_start"].str.len()
+# for x in range(df_power_substation["point_within_start"].str.len().max()):
+#     df_power_substation["point_within_start_"+str(x)]=df_point_within_split[x]
+#     df_power_line["point_substation_id_"+str(x)]=np.empty((len(df_power_line), 0)).tolist()
+#     df_power_line["point_substation_id_"+str(x)].loc[df_power_substation["point_within_start_"+str(x)]] = df_power_substation["ID"]
+#     # df_power_line["point_substation_id_"+str(x)].append(df_power_line["point_substation_id_"+str(x)].loc[df_power_substation["point_within_start_"+str(x)]] = df_power_substation["ID"])
+#     df_power_line["point_substation_id_start"].append(df_power_line["point_substation_id_"+str(x)])
+# #     x=x+1
+# # #df_power_line["point_substation_id_1"].loc[df_power_substation["point_within_start"]] = df_power_substation["ID"]
+# df_contains_start = df_power_line["startpoint"].agg(lambda x: df_power_substation["geometry"].contains(x))==True 
+# df_point_contains_start = df_contains_start.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+# df_power_line["point_within_start"] = df_point_contains_start
+# df_point_contains_split = pd.DataFrame(df_power_line["point_within_start"].to_list())
+# df_point_contains_split=df_point_contains_split.replace({np.nan:None})
+# df_power_line["point_within_start"] = df_point_contains_split[0]
+
+
+# df_within_end= df_power_line["endpoint"].agg(lambda x: df_power_substation["geometry"].contains(x))==True 
+# df_point_within_end_2 = ((df_within_end == True).idxmax(axis=1))
+# df_power_line["point_within_end"] = df_point_within_end_2
+# df_power_line["point_substation_id_2"] = df_power_substation["ID"].loc[df_power_line["point_within_end"]].reset_index()["ID"]
+
+#   Get the indexes where the geometry contains the point. Then get just the first Index and the ID of the geometry and write it in Line
+df_within_start = df_power_line["startpoint"].agg(lambda x: df_power_substation["geometry"].contains(x))==True
+df_within_start["indexes"] = df_within_start.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+df_power_line["point_within_start"] = df_within_start["indexes"].str[0]
+df_power_line["point_substation_id_1"].loc[df_power_line["point_within_start"] >=0] = df_power_substation["ID"]
+
+
+df_within_end = df_power_line["endpoint"].agg(lambda x: df_power_substation["geometry"].contains(x))==True
+df_within_end["indexes"] = df_within_end.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+df_power_line["point_within_end"] = df_within_end["indexes"].str[0]
+df_power_line["point_substation_id_2"].loc[df_power_line["point_within_end"] >=0] = df_power_substation["ID"]
+
+#   Delete where point 1 and 2 have the same ID
+df_power_line.drop(df_power_line.loc[df_power_line["point_substation_id_1"]==df_power_line["point_substation_id_2"]].index.to_list(), inplace=True)
+
+
+# for x in df_power_line.index:
+#     start_point = df_power_line.loc[x, "startpoint"]
+#     end_point = df_power_line.loc[x, "endpoint"]
+#     for y in df_power_substation.index:
+#         poly = df_power_substation.loc[y, "geometry"]
+#         if start_point.within(poly) == True:
+#             df_power_line.loc[x, "point_substation_id_1"].append(df_power_substation.loc[y, "ID"])
+#         if end_point.within(poly) == True:
+#             df_power_line.loc[x, "point_substation_id_2"].append(df_power_substation.loc[y, "ID"])
+
+# for x in df_power_line.index:
+#     start_id = df_power_line.loc[x, "point_substation_id_1"]
+#     end_id = df_power_line.loc[x, "point_substation_id_2"]   
+#     print(start_id, end_id)
+#     if str(start_id) == str(end_id):
+#         df_power_line.drop(index=x , inplace= True)
         
 #   Untersuchung Spannungsebene     266
 
 df_power_line["numb_volt_lev"]=""
 
-for x in df_power_line.index:
-    length_voltage = df_power_line.loc[x, "voltage"]
-    length_voltage_2 =df_power_line.loc[x, "voltage"].replace(";", "")
-    df_power_line.loc[x, "numb_volt_lev"]= len(str(length_voltage))-len(str(length_voltage_2))+1
-    print (length_voltage, length_voltage_2)
+df_power_line["numb_volt_lev"] = df_power_line["voltage"].str.count(";") +1
 
-for x in df_power_line.index:    
-    df_power_line.loc[x, "numb_volt_lev2"]=df_power_line.loc[x, "voltage"].replace(";", "")
-    df_power_line.loc[x, "numb_volt_lev3"] = df_power_line.loc[x, "voltage"]
+#df_power_line["numb_volt_lev2"] =df_power_line["voltage"].agg(lambda x: x.replace(";", ""))
+#df_power_line["numb_volt_lev3"] = df_power_line["voltage"]
+#df_power_line["numb_volt_lev"] = df_power_line["voltage"].str.len()-df_power_line["numb_volt_lev2"].str.len()+1
 
 
 #   277
 
-df_power_line["voltage_array_1"]=""
-df_power_line["voltage_array_2"]=""
-df_power_line["voltage_array_3"]=""
-df_power_line["voltage_array_4"]=""
+df_power_line_voltage_array=pd.DataFrame
+df_power_line_voltage_array = df_power_line.voltage.str.split(";", expand= True)
 
-for x in df_power_line.index:
-    df_power_line.loc[x, "voltage_array_1"]
+for x in range(df_power_line["numb_volt_lev"].max()):
+    df_power_line["voltage_array"+str(x+1)] = df_power_line_voltage_array[x]
+    df_power_line["voltage_array"+str(x+1)].loc[df_power_line["voltage_array"+str(x+1)] == "60000"] = "110000"
+df_power_line["voltage_array1"]
+# TODO 303 Wird hier alles gelöscht oder nur einzelne Werte? Das ist in Pandas nicht möglich und bereits als NOne gespeichert
+
+
+#   322 add Cables
+# TODO nur für line einfügen
+df_power_line["cables_sum"]=""
+df_power_line["cables_sum"] = df_power_line["cables"]
+df_power_line["cables_sum"].loc[df_power_line["cables_sum"].isna()==True]= "0"
+df_power_line["cables_sum"].loc[df_power_line["cables_sum"].str.contains(r'^\s*$', na=False)] = "0"
+
+v_semic_numb = df_power_line["cables_sum"].str.count(";")
+numbers = df_power_line.cables_sum.str.split(";", expand = True)
+numbers = numbers.apply(pd.to_numeric)
+v_sum = numbers.sum(axis=1, numeric_only = True)
+df_power_line["cables_sum"] = v_sum
+
+#   adds the value of the cables if there are as much values for the voltage as for the cables
+
+for x in range((v_semic_numb+1).max()):
+    df_power_line["cables_array"+str(x+1)]=""
+    df_power_line["cables_array"+str(x+1)].loc[df_power_line["numb_volt_lev"] - 1 == v_semic_numb] = numbers[x]
+
+
+#   340 Mark all substations (not plants), which have 110kV connection. Thus they connect lower voltage grids.
+df_power_substation["numb_volt_lev"]=""
+df_power_substation["numb_volt_lev"] = df_power_substation.voltage.str.count(";")+1
+numbers_voltage_substation = df_power_substation.voltage.str.split(";", expand = True)
+#numbers_voltage_substation = numbers_voltage_substation.apply(pd.to_numeric, errors="ignore")
+
+df_power_substation["connection_110kV"] = ""
+# Using For schleife, so no hard coding is needed for the number of different voltages.
+#   TODO drop columns
+for x in range((df_power_substation.voltage.str.count(";")+1).max()):
+    df_power_substation["voltage_array"+str(x)] = ""
+    numbers_voltage_substation[x] = numbers_voltage_substation[x].fillna("")
+    df_power_substation["int"+str(x)] = numbers_voltage_substation[x].agg(lambda y: y.isnumeric())
+    df_power_substation["voltage_array"+str(x)]=numbers_voltage_substation[x].loc[df_power_substation["int"+str(x)]]
+    df_power_substation["voltage_array"+str(x)].loc[df_power_substation["voltage_array"+str(x)] == "60000"] = "110000"
+    df_power_substation["connection_110kV"].loc[df_power_substation["voltage_array"+str(x)] == "110000"] = True
+  
+
+#   Consider all substations which have power lines with 110kV and end or start in a substation also connected to 110kV 
+df_power_substation["connection_110kV"].loc[df_power_line["point_within_start"].loc[(df_power_line["point_within_start"]>=0) & (df_power_line["voltage_array1"] == "110000")]] =True
+df_power_substation["connection_110kV"].loc[df_power_line["point_within_end"].loc[(df_power_line["point_within_end"]>=0) & (df_power_line["voltage_array1"] == "110000")]] =True
+
 
 timer_end = time.time()
 print('Runtime ' + str(round((timer_end-timer_start)/60, 2)) + ' Minutes')
