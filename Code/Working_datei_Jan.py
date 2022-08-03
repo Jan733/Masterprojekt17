@@ -194,7 +194,8 @@ df_power_substation = df_power_ways_applied_changes[df_power_ways_applied_change
 for x in df_power_substation.index:
     if len(df_power_substation["geometry"][x].coords) < 4:          #delete geometry with less than 4 Points (you need 4 Points for a Polygon)
         df_power_substation.drop(index=x, inplace= True)
-    
+
+
 df_power_substation_geometry = df_power_substation["geometry"].agg(lambda x: Polygon(x))        # Create Polygon out of Linestrings
 df_power_substation = gpd.GeoDataFrame(df_power_substation, geometry = df_power_substation_geometry)    # create the gpd with the Polygons
 #for x in df_power_substation ["geometry"]:
@@ -374,11 +375,15 @@ df_power_line["numb_volt_lev"] = df_power_line["voltage"].str.count(";") +1
 
 df_power_line_voltage_array=pd.DataFrame
 df_power_line_voltage_array = df_power_line.voltage.str.split(";", expand= True)
+df_power_line["voltage_array_1"]=""
+df_power_line["voltage_array_2"]=""
+df_power_line["voltage_array_3"]=""
+df_power_line["voltage_array_4"]=""
 
 for x in range(df_power_line["numb_volt_lev"].max()):
-    df_power_line["voltage_array"+str(x+1)] = df_power_line_voltage_array[x]
-    df_power_line["voltage_array"+str(x+1)].loc[df_power_line["voltage_array"+str(x+1)] == "60000"] = "110000"
-df_power_line["voltage_array1"]
+    df_power_line["voltage_array_"+str(x+1)] = df_power_line_voltage_array[x]
+    df_power_line["voltage_array_"+str(x+1)].loc[df_power_line["voltage_array_"+str(x+1)] == "60000"] = "110000"
+df_power_line["voltage_array_1"]
 # TODO 303 Wird hier alles gelöscht oder nur einzelne Werte? Das ist in Pandas nicht möglich und bereits als NOne gespeichert
 
 
@@ -398,8 +403,8 @@ df_power_line["cables_sum"] = v_sum
 #   adds the value of the cables if there are as much values for the voltage as for the cables
 
 for x in range((v_semic_numb+1).max()):
-    df_power_line["cables_array"+str(x+1)]=""
-    df_power_line["cables_array"+str(x+1)].loc[df_power_line["numb_volt_lev"] - 1 == v_semic_numb] = numbers[x]
+    df_power_line["cables_array_"+str(x+1)]=""
+    df_power_line["cables_array_"+str(x+1)].loc[df_power_line["numb_volt_lev"] - 1 == v_semic_numb] = numbers[x]
 
 
 #   340 Mark all substations (not plants), which have 110kV connection. Thus they connect lower voltage grids.
@@ -409,21 +414,47 @@ numbers_voltage_substation = df_power_substation.voltage.str.split(";", expand =
 #numbers_voltage_substation = numbers_voltage_substation.apply(pd.to_numeric, errors="ignore")
 
 df_power_substation["connection_110kV"] = ""
+df_power_substation["voltage_array_1"] = ""
+df_power_substation["voltage_array_2"] = ""
+df_power_substation["voltage_array_3"] = ""
+df_power_substation["voltage_array_4"] = ""
+
 # Using For schleife, so no hard coding is needed for the number of different voltages.
 #   TODO drop columns
 for x in range((df_power_substation.voltage.str.count(";")+1).max()):
-    df_power_substation["voltage_array"+str(x)] = ""
     numbers_voltage_substation[x] = numbers_voltage_substation[x].fillna("")
     df_power_substation["int"+str(x)] = numbers_voltage_substation[x].agg(lambda y: y.isnumeric())
-    df_power_substation["voltage_array"+str(x)]=numbers_voltage_substation[x].loc[df_power_substation["int"+str(x)]]
-    df_power_substation["voltage_array"+str(x)].loc[df_power_substation["voltage_array"+str(x)] == "60000"] = "110000"
-    df_power_substation["connection_110kV"].loc[df_power_substation["voltage_array"+str(x)] == "110000"] = True
+    df_power_substation["voltage_array_"+str(x+1)]=numbers_voltage_substation[x].loc[df_power_substation["int"+str(x)]]
+    df_power_substation["voltage_array_"+str(x+1)].loc[df_power_substation["voltage_array_"+str(x+1)] == "60000"] = "110000"
+    df_power_substation["connection_110kV"].loc[df_power_substation["voltage_array_"+str(x+1)] == "110000"] = True
   
 
 #   Consider all substations which have power lines with 110kV and end or start in a substation also connected to 110kV 
-df_power_substation["connection_110kV"].loc[df_power_line["point_within_start"].loc[(df_power_line["point_within_start"]>=0) & (df_power_line["voltage_array1"] == "110000")]] =True
-df_power_substation["connection_110kV"].loc[df_power_line["point_within_end"].loc[(df_power_line["point_within_end"]>=0) & (df_power_line["voltage_array1"] == "110000")]] =True
+df_power_substation["connection_110kV"].loc[df_power_line["point_within_start"].loc[(df_power_line["point_within_start"]>=0) & ((df_power_line["voltage_array_1"] == "110000") | (df_power_line["voltage_array_2"] == "110000")| (df_power_line["voltage_array_3"] == "110000")| (df_power_line["voltage_array_4"] == "110000"))]] = True
+df_power_substation["connection_110kV"].loc[df_power_line["point_within_end"].loc[(df_power_line["point_within_end"]>=0) & ((df_power_line["voltage_array_1"] == "110000") | (df_power_line["voltage_array_2"] == "110000")| (df_power_line["voltage_array_3"] == "110000")| (df_power_line["voltage_array_4"] == "110000"))]] =True
 
+df_power_substation.drop("voltage_array_1", inplace =True, axis=1)
+df_power_substation.drop("voltage_array_2", inplace =True, axis=1)
+df_power_substation.drop("voltage_array_3", inplace =True, axis=1)
+df_power_substation.drop("voltage_array_4", inplace =True, axis=1)
+
+
+def read_wires():
+    for x in df_power_line["wires"]:
+        if np.isnan(df_power_line["wires"][x]) is False and "line" in df_power_line["power"].values and ";" not in \
+                df_power_line["power"][x]:
+            for i in df_power_line["numb_volt_lev"]:
+                df_power_line["wires_array"][i] = change_datatype_wires(df_power_line, "wires", 1)
+                
+                
+# Create a column including the wires as integers
+df_power_line["wires_array"]=""
+df_power_line["wires_array"] = df_power_line["wires"].loc[(df_power_line["wires"].str.count(";")==0) & (df_power_line["wires"]!=np.isnan) & (df_power_line["power"]=="line")]
+
+df_power_line["wires_array"].loc[df_power_line["wires_array"]=="quad"]=4
+df_power_line["wires_array"].loc[df_power_line["wires_array"]=="triple"]=3
+df_power_line["wires_array"].loc[df_power_line["wires_array"]=="double"]=2
+df_power_line["wires_array"].loc[df_power_line["wires_array"]=="single"]=1
 
 timer_end = time.time()
 print('Runtime ' + str(round((timer_end-timer_start)/60, 2)) + ' Minutes')
