@@ -397,6 +397,13 @@ def st_length(): # Calculation of length of cables
 # 396
 # Power_line: Read Wires
 # Add wires_array in power_line # Anzahl der Leiterseile im Bündelleiter pro Spannungsebene
+df_power_line["wires_array"]=""
+df_power_line["wires_array"] = df_power_line["wires"].loc[(df_power_line["wires"].str.count(";")==0) & (df_power_line["wires"]!=np.isnan) & (df_power_line["power"]=="line")]
+
+df_power_line["wires_array"].loc[df_power_line["wires_array"]=="quad"]=4
+df_power_line["wires_array"].loc[df_power_line["wires_array"]=="triple"]=3
+df_power_line["wires_array"].loc[df_power_line["wires_array"]=="double"]=2
+df_power_line["wires_array"].loc[df_power_line["wires_array"]=="single"]=1
 
 df_power_line["wires_array"] = " "
 read_wires()
