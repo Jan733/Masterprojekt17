@@ -412,8 +412,12 @@ read_wires()
 # Power_line: Read Frequency
 # ...
 
+
 df_power_line["frequency_array"] = " "
 read_frequency()
+
+#   Mögliche Umsetzung Jan
+df_power_line["frequency_array"] = df_power_line["frequency"].loc[(df_power_line["frequency"].str.count(";")==0) & (df_power_line["frequency"]!=np.isnan) & (df_power_line["power"]=="line") & (df_power_line["frequency"].agg(lambda x: x.replace(".","")).str.isnumeric())]
 
 
 # 425
