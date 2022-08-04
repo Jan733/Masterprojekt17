@@ -433,6 +433,8 @@ read_circuits()
 df_power_line["length"] = " "
 st_length()
 
+#   Length Jan
+df_power_line["lenght"] = df_power_line["geometry"].length
 
 #495
 # Create table power_circuits
