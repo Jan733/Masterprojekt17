@@ -387,23 +387,18 @@ def read_frequency():  # vielleicht noch unvollständig
             for i in df_power_line["numb_volt_lev"]:
                 df_power_line["frequency_array"][i] = change_datatype_wires(df_power_line, "frequency", 1)
 
-def st_length(): # Calculation of length of cables
-    for x in df_power_ways["geometry"]:
-        df_power_line["length"][x] = df_power_ways["geometry"][x].length
-
-
 # FUNCTIONS END
 
 # 396
 # Power_line: Read Wires
 # Add wires_array in power_line # Anzahl der Leiterseile im Bündelleiter pro Spannungsebene
-df_power_line["wires_array"]=""
+df_power_line["wires_array"] = ""
 df_power_line["wires_array"] = df_power_line["wires"].loc[(df_power_line["wires"].str.count(";")==0) & (df_power_line["wires"]!=np.isnan) & (df_power_line["power"]=="line")]
 
-df_power_line["wires_array"].loc[df_power_line["wires_array"]=="quad"]=4
-df_power_line["wires_array"].loc[df_power_line["wires_array"]=="triple"]=3
-df_power_line["wires_array"].loc[df_power_line["wires_array"]=="double"]=2
-df_power_line["wires_array"].loc[df_power_line["wires_array"]=="single"]=1
+df_power_line["wires_array"].loc[df_power_line["wires_array"] == "quad"] = 4
+df_power_line["wires_array"].loc[df_power_line["wires_array"] == "triple"] = 3
+df_power_line["wires_array"].loc[df_power_line["wires_array"] == "double"] = 2
+df_power_line["wires_array"].loc[df_power_line["wires_array"] == "single"] = 1
 
 df_power_line["wires_array"] = " "
 read_wires()
@@ -430,9 +425,6 @@ read_circuits()
 # Calculating Length of cables of geopandas series and
 # importing it into an array "length"
 
-df_power_line["length"] = " "
-st_length()
-
 #   Length Jan
 df_power_line["lenght"] = df_power_line["geometry"].length
 
@@ -456,7 +448,7 @@ change_datatype_semic(df_power_circuits, "frequency", 1)
 change_datatype_wires("wires", 1)  # position starts from 1
 
 
-''' #print more rows
+'''print more rows
 pd.set_option('display.max_columns', None) 
 pd.set_option('display.width', 100000000)
 pd.set_option('display.max_rows', None)
