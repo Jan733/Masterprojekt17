@@ -549,7 +549,8 @@ df_power_circuits["frequency"].loc[(df_power_circuits["frequency"] is None) & (d
 
 # Assumption frequency: only 110kV circuits with no cable INFO OR
 # OR 3, 6, 9, 12 cables get f = 50 Hz
-df_power_circuits["frequency"].loc[(df_power_circuits["frequency"] is None) & (df_power_circuits["voltage"] == "110000")
+df_power_circuits["frequency"] = df_power_circuits["frequency"].replace(r'^\s*$', None, regex=True)
+df_power_circuits["frequency"].loc[(df_power_circuits["frequency"].isnull()==True) & (df_power_circuits["voltage"] == "110000")
                                    & (df_power_circuits["cables"] == "12")] = 50
 
 ### SET Frequency 16.7 ?
