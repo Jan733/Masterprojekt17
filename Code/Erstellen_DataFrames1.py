@@ -401,7 +401,7 @@ df_power_line["wires_array"].loc[df_power_line["wires_array"] == "double"] = 2
 df_power_line["wires_array"].loc[df_power_line["wires_array"] == "single"] = 1
 
 df_power_line["wires_array"] = " "
-read_wires()
+#read_wires()
 
 # 403
 # Power_line: Read Frequency
@@ -409,7 +409,7 @@ read_wires()
 
 
 df_power_line["frequency_array"] = " "
-read_frequency()
+#read_frequency()
 
 #   Mögliche Umsetzung Jan
 df_power_line["frequency_array"] = df_power_line["frequency"].loc[(df_power_line["frequency"].str.count(";")==0) & (df_power_line["frequency"]!=np.isnan) & (df_power_line["power"]=="line") & (df_power_line["frequency"].agg(lambda x: x.replace(".","")).str.isnumeric())]
@@ -419,7 +419,7 @@ df_power_line["frequency_array"] = df_power_line["frequency"].loc[(df_power_line
 # CIRCUITS
 # Create CIRCUITS from CABLES
 
-read_circuits()
+#read_circuits()
 
 # 431
 # Calculating Length of cables of geopandas series and
@@ -430,12 +430,12 @@ df_power_line["lenght"] = df_power_line["geometry"].length
 
 #495
 # Create table power_circuits
-power_circuits = df_power_relations_applied_changes
+df_power_circuits = df_power_relations_applied_changes
 
 #503
 # Create table power_circ_members #gets information from power_line table
 # Delete members, when deleted in power_circuits
-power_circ_members = {'relation_id': [], 'line_id': []}  # line_id of relation members
+df_power_circ_members = {'relation_id': [], 'line_id': []}  # line_id of relation members
 
 
 # 515
@@ -456,8 +456,8 @@ pd.set_option('display.max_rows', None)
 
 #536
 #ASSUMPTION: Voltage of 110kV to 60kV
-for x in power_circuits["voltage"]:
-    power_circuits['voltage'].mask(power_circuits['voltage'] == 110000, 60000, inplace=True)
+for x in df_power_circuits["voltage"]:
+    df_power_circuits['voltage'].mask(df_power_circuits['voltage'] == 110000, 60000, inplace=True)
 
 #print(power_circuits)
 #print(power_circuits.head().to_string())

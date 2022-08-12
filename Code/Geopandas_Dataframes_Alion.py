@@ -30,9 +30,12 @@ timer_start = time.time()
 # Erstellen der Paths
 # data_path = os.getcwd()
 # print(data_path)
-raw_data_dir = os.getcwd() + "/raw_data"
-print(raw_data_dir)
+# raw_data_dir = os.getcwd() + "/raw_data"
+# print(raw_data_dir)
+data_path = os.getcwd()
+raw_data_dir = os.path.dirname(os.getcwd()) + "/raw_data"
 
+(raw_data_dir)
 #   Eingabe des / der Filenames:
 # filename_node = input("Geben sie den Node Filename ein, den Sie bearbeiten möchten (bspw.: Node.csv): ")
 # filename_way = input("Geben sie den Way Filename ein, den Sie bearbeiten möchten (bspw.: way.csv): ")
@@ -528,7 +531,7 @@ pd.set_option('display.max_rows', None)
 
 # 536
 # ASSUMPTION: Voltage of 110kV to 60kV
-df_power_circuits["voltage"].loc[df_power_circuits["voltage"] == 60000] = 110000
+df_power_circuits["voltage"].loc[df_power_circuits["voltage"] == "60000"] = 110000
 
 # 555 Delete all Members in power_circ_members which are not in power_line table cascade method
 df_power_circ_members = df_power_circ_members[df_power_circ_members["relation_id"].isin(df_power_line["ID"])]
@@ -546,8 +549,8 @@ df_power_circuits["frequency"].loc[(df_power_circuits["frequency"] is None) & (d
 
 # Assumption frequency: only 110kV circuits with no cable INFO OR
 # OR 3, 6, 9, 12 cables get f = 50 Hz
-df_power_circuits["frequency"].loc[(df_power_circuits["frequency"] is None) & (df_power_circuits["voltage"] == 110000)
-                                   & (df_power_circuits["cables"] == (3 | 6 | 9 | 12))] = 50
+df_power_circuits["frequency"].loc[(df_power_circuits["frequency"] is None) & (df_power_circuits["voltage"] == "110000")
+                                   & (df_power_circuits["cables"] == "12")] = 50
 
 ### SET Frequency 16.7 ?
 
