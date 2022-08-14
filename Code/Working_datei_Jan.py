@@ -363,9 +363,9 @@ df_power_line.drop(df_power_line.loc[df_power_line["point_substation_id_1"]==df_
 #   Untersuchung Spannungsebene     266
 
 df_power_line["numb_volt_lev"]=""
-
-df_power_line["numb_volt_lev"] = df_power_line["voltage"].str.count(";") +1
-
+# TODO
+df_power_line["numb_volt_lev"] = df_power_line["voltage"].replace(r'^\s*$', None, regex=True).loc[df_power_line["voltage"].isnull()==False].str.count(";") +1
+df_power_line["numb_volt_lev"].loc[df_power_line["numb_volt_lev"].isnull()==True] = 0
 #df_power_line["numb_volt_lev2"] =df_power_line["voltage"].agg(lambda x: x.replace(";", ""))
 #df_power_line["numb_volt_lev3"] = df_power_line["voltage"]
 #df_power_line["numb_volt_lev"] = df_power_line["voltage"].str.len()-df_power_line["numb_volt_lev2"].str.len()+1
@@ -380,7 +380,7 @@ df_power_line["voltage_array_2"]=""
 df_power_line["voltage_array_3"]=""
 df_power_line["voltage_array_4"]=""
 
-for x in range(df_power_line["numb_volt_lev"].max()):
+for x in range(int(df_power_line["numb_volt_lev"].max())):
     df_power_line["voltage_array_"+str(x+1)] = df_power_line_voltage_array[x]
     df_power_line["voltage_array_"+str(x+1)].loc[df_power_line["voltage_array_"+str(x+1)] == "60000"] = "110000"
 df_power_line["voltage_array_1"]
@@ -394,23 +394,31 @@ df_power_line["cables_sum"] = df_power_line["cables"]
 df_power_line["cables_sum"].loc[df_power_line["cables_sum"].isna()==True]= "0"
 df_power_line["cables_sum"].loc[df_power_line["cables_sum"].str.contains(r'^\s*$', na=False)] = "0"
 
-v_semic_numb = df_power_line["cables_sum"].str.count(";")
+v_semic_numb = df_power_line["cables_sum"].str.count(";")+1
 numbers = df_power_line.cables_sum.str.split(";", expand = True)
 numbers = numbers.apply(pd.to_numeric)
 v_sum = numbers.sum(axis=1, numeric_only = True)
 df_power_line["cables_sum"] = v_sum
 
 #   adds the value of the cables if there are as much values for the voltage as for the cables
+df_power_line["cables_array_1"]=""
+df_power_line["cables_array_2"]=""
+df_power_line["cables_array_3"]=""
+df_power_line["cables_array_4"]=""
 
-for x in range((v_semic_numb+1).max()):
+for x in range((v_semic_numb).max()):
     df_power_line["cables_array_"+str(x+1)]=""
-    df_power_line["cables_array_"+str(x+1)].loc[df_power_line["numb_volt_lev"] - 1 == v_semic_numb] = numbers[x]
+    df_power_line["cables_array_"+str(x+1)].loc[df_power_line["numb_volt_lev"]
+                                                == v_semic_numb] = numbers[x]
 
 
 #   340 Mark all substations (not plants), which have 110kV connection. Thus they connect lower voltage grids.
 df_power_substation["numb_volt_lev"]=""
-df_power_substation["numb_volt_lev"] = df_power_substation.voltage.str.count(";")+1
+# df_power_substation["numb_volt_lev"] = df_power_substation.voltage.str.count(";")+1
+df_power_substation["numb_volt_lev"] = df_power_substation["voltage"].replace(r'^\s*$', None, regex=True).loc[df_power_substation["voltage"].isnull()==False].str.count(";") +1
+df_power_substation["numb_volt_lev"].loc[df_power_substation["numb_volt_lev"].isnull()==True] = 0
 numbers_voltage_substation = df_power_substation.voltage.str.split(";", expand = True)
+
 #numbers_voltage_substation = numbers_voltage_substation.apply(pd.to_numeric, errors="ignore")
 
 df_power_substation["connection_110kV"] = ""
@@ -421,7 +429,7 @@ df_power_substation["voltage_array_4"] = ""
 
 # Using For schleife, so no hard coding is needed for the number of different voltages.
 #   TODO drop columns
-for x in range((df_power_substation.voltage.str.count(";")+1).max()):
+for x in range((df_power_substation.voltage.str.count(";")).max()):
     numbers_voltage_substation[x] = numbers_voltage_substation[x].fillna("")
     df_power_substation["int"+str(x)] = numbers_voltage_substation[x].agg(lambda y: y.isnumeric())
     df_power_substation["voltage_array_"+str(x+1)]=numbers_voltage_substation[x].loc[df_power_substation["int"+str(x)]]
@@ -438,13 +446,6 @@ df_power_substation.drop("voltage_array_2", inplace =True, axis=1)
 df_power_substation.drop("voltage_array_3", inplace =True, axis=1)
 df_power_substation.drop("voltage_array_4", inplace =True, axis=1)
 
-
-def read_wires():
-    for x in df_power_line["wires"]:
-        if np.isnan(df_power_line["wires"][x]) is False and "line" in df_power_line["power"].values and ";" not in \
-                df_power_line["power"][x]:
-            for i in df_power_line["numb_volt_lev"]:
-                df_power_line["wires_array"][i] = change_datatype_wires(df_power_line, "wires", 1)
                 
                 
 # Create a column including the wires as integers
@@ -455,6 +456,130 @@ df_power_line["wires_array"].loc[df_power_line["wires_array"]=="quad"]=4
 df_power_line["wires_array"].loc[df_power_line["wires_array"]=="triple"]=3
 df_power_line["wires_array"].loc[df_power_line["wires_array"]=="double"]=2
 df_power_line["wires_array"].loc[df_power_line["wires_array"]=="single"]=1
+
+
+#   Create column including the Frequency when it's not null and it has no semicolons
+
+df_power_line["frequency_array_1"] =""
+df_power_line["frequency_array_2"] =""
+df_power_line["frequency_array_3"] =""
+df_power_line["frequency_array_4"] =""
+df_power_line["frequency_array_1"] = df_power_line["frequency"].loc[(df_power_line["frequency"].str.count(";")==0) & (df_power_line["numb_volt_lev"]>0) & (df_power_line["power"]=="line") & (df_power_line["frequency"].agg(lambda x: x.replace(".","")).str.isnumeric())]
+df_power_line["frequency_array_2"] = df_power_line["frequency"].loc[(df_power_line["frequency"].str.count(";")==0) & (df_power_line["numb_volt_lev"]>(1)) & (df_power_line["frequency"]!=np.isnan) & (df_power_line["power"]=="line") & (df_power_line["frequency"].agg(lambda x: x.replace(".","")).str.isnumeric())]
+df_power_line["frequency_array_3"] = df_power_line["frequency"].loc[(df_power_line["frequency"].str.count(";")==0) & (df_power_line["numb_volt_lev"]>(2)) & (df_power_line["frequency"]!=np.isnan) & (df_power_line["power"]=="line") & (df_power_line["frequency"].agg(lambda x: x.replace(".","")).str.isnumeric())]
+df_power_line["frequency_array_4"] = df_power_line["frequency"].loc[(df_power_line["frequency"].str.count(";")==0) & (df_power_line["numb_volt_lev"]>3) & (df_power_line["frequency"]!=np.isnan) & (df_power_line["power"]=="line") & (df_power_line["frequency"].agg(lambda x: x.replace(".","")).str.isnumeric())]
+
+#df_power_line["frequency"].agg(lambda x: x.replace(".","")).str.isnumeric()     # Used for getting also float numbers
+
+
+#   Create column thats measuring the length of the lines
+#TODO was ist das für eine Länge ???? Mit der Geometrie auseinandersetzen bzgl EPSG etc...
+df_power_line["length"] = df_power_line["geometry"].length
+# df_power_line["geometry"] = df_power_line["geometry"].set_crs(epsg="4326")
+# df_power_line["geometry"] = df_power_line["geometry"].to_crs(4326)
+
+
+#   Neighbours 451
+#v_id = df_power_line.copy()
+#v_volt = v_id.voltage_array[1]
+#v_count = 0
+
+    
+# Creates a Dataframe with every Index    
+df_neighbours_startpoint = pd.DataFrame
+df_neighbours_endpoint = pd.DataFrame
+
+df_power_line["index_2"]=df_power_line.index
+#df_power_line["index_2"].agg(lambda x: df_power_line["startpoint"].loc[df_power_line["ID"]!= df_power_line["ID"][x]].geom_equals(df_power_line["startpoint"][x]))
+#df_power_line["voltage"] = df_power_line["voltage"].fillna(0, inplace = True)
+df_power_line["voltage_array_1"]= df_power_line["voltage_array_1"].replace(r'^\s*$', None, regex=True)
+df_power_line["voltage_array_2"]= df_power_line["voltage_array_2"].replace(r'^\s*$', None, regex=True)
+df_power_line["voltage_array_3"]= df_power_line["voltage_array_3"].replace(r'^\s*$', None, regex=True)
+df_power_line["voltage_array_4"]= df_power_line["voltage_array_4"].replace(r'^\s*$', None, regex=True)
+
+
+# df_neighbours_startpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_1"].isnull() == False].agg(lambda x: df_power_line["startpoint"].loc[(df_power_line["ID"]!= df_power_line["ID"][x])].geom_equals(df_power_line["startpoint"][x]))
+# df_neighbours_endpoint = df_power_line["index_2"].agg(lambda x: df_power_line["endpoint"].loc[df_power_line["ID"]!= df_power_line["ID"][x]].geom_equals(df_power_line["startpoint"][x]))
+# # df_neighbours_startpoint = df_power_line["startpoint"].agg(lambda x: df_power_line["startpoint"].geom_equals(x)) 
+# # df_neighbours_endpoint = df_power_line["startpoint"].agg(lambda x: df_power_line["endpoint"].geom_equals(x))
+# df_neighbours_startpoint["indexes"] = df_neighbours_startpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+# df_neighbours_endpoint["indexes"] = df_neighbours_endpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+
+
+#Auswahl Variablen die bei Spannung null sind
+#df_neighbours_startpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_1"].isnull()].agg(lambda x: df_power_line["startpoint"].loc[(df_power_line["ID"]!= df_power_line["ID"][x])].geom_equals(df_power_line["startpoint"][x]))
+#df_power_line["voltage_array_1"].loc[df_power_line["voltage_array_1"].isnull()==False] = df_power_line["voltage_array_1"].loc[df_power_line["voltage_array_1"].isnull()==False].agg(lambda x: int(x))
+#Implementieren von Spannungsebene muss enthalhten sein!
+
+
+
+# df_neighbours_startpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_1"].isnull() == False].agg(lambda x: df_power_line["startpoint"]
+#                                                     .loc[((df_power_line["voltage_array_1"][x] == df_power_line["voltage_array_1"]) | 
+#                                                        (df_power_line["voltage_array_1"][x] == (df_power_line["voltage_array_2"])) | 
+#                                                        (df_power_line["voltage_array_1"][x] == (df_power_line["voltage_array_3"])) | 
+#                                                        (df_power_line["voltage_array_1"][x] == (df_power_line["voltage_array_4"]))) & (df_power_line["ID"]!= df_power_line["ID"][x]) ].geom_equals(df_power_line["startpoint"][x]))
+# df_neighbours_startpoint["indexes"] = df_neighbours_startpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+
+#   Neighbours function to identify possible neighbours for every line
+df_neighbours_startpoint_indexes = df_power_line[["index_2"]].copy()
+df_neighbours_endpoint_indexes = df_power_line[["index_2"]].copy()
+for y in range(1,5,1):
+    if len(df_power_line["voltage_array_"+str(y)].loc[df_power_line["voltage_array_"+str(y)].isnull() ==True]) != len(df_power_line["voltage_array_"+str(y)]):
+        df_neighbours_startpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_"+str(y)].isnull() == False].agg(lambda x: df_power_line["startpoint"]
+                                                            .loc[((df_power_line["voltage_array_"+str(y)][x] == df_power_line["voltage_array_1"]) | 
+                                                               (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_2"])) | 
+                                                               (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_3"])) | 
+                                                               (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_4"]))) & (df_power_line["ID"]!= df_power_line["ID"][x]) ].geom_equals(df_power_line["startpoint"][x]))
+        
+        if df_neighbours_startpoint.empty == False:
+            df_neighbours_startpoint["indexes"] = df_neighbours_startpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+            df_neighbours_startpoint_indexes["index"+str(y)] = df_neighbours_startpoint["indexes"]
+
+        df_neighbours_endpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_"+str(y)].isnull() == False].agg(lambda x: df_power_line["endpoint"]
+                                                            .loc[((df_power_line["voltage_array_"+str(y)][x] == df_power_line["voltage_array_1"]) | 
+                                                               (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_2"])) | 
+                                                               (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_3"])) | 
+                                                               (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_4"]))) & (df_power_line["ID"]!= df_power_line["ID"][x]) ].geom_equals(df_power_line["startpoint"][x]))
+        if df_neighbours_endpoint.empty == False:    
+            df_neighbours_endpoint["indexes"] = df_neighbours_endpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
+            df_neighbours_endpoint_indexes["index"+str(y)] = df_neighbours_endpoint["indexes"]
+            
+
+# df_power_line["cables_array_1"]= df_power_line["cables_array_1"].replace(r'^\s*$', 0, regex=True)
+# df_power_line["cables_array_2"]= df_power_line["cables_array_2"].replace(r'^\s*$', 0, regex=True)
+# df_power_line["cables_array_3"]= df_power_line["cables_array_3"].replace(r'^\s*$', 0, regex=True)
+# df_power_line["cables_array_4"]= df_power_line["cables_array_4"].replace(r'^\s*$', 0, regex=True)
+
+cables_array = df_power_line[["cables_array_1","cables_array_2", "cables_array_3", "cables_array_4"]].replace(r'^\s*$', 0, regex=True).copy()
+cables_array["cables_array_1"].loc[cables_array["cables_array_1"]>0]=1
+cables_array["cables_array_2"].loc[cables_array["cables_array_2"]>0]=1
+cables_array["cables_array_3"].loc[cables_array["cables_array_3"]>0]=1
+cables_array["cables_array_4"].loc[cables_array["cables_array_4"]>0]=1
+cables_array["v_numb_known_cable_lev"] = 0
+
+frequency_array = df_power_line[["frequency_array_1","frequency_array_2", "frequency_array_3", "frequency_array_4"]].replace(np.nan, 0, regex=True).copy()
+frequency_array["frequency_array_1"].loc[frequency_array["frequency_array_1"].astype(float)>0]=1
+frequency_array["frequency_array_2"].loc[frequency_array["frequency_array_2"].astype(float)>0]=1
+frequency_array["frequency_array_3"].loc[frequency_array["frequency_array_3"].astype(float)>0]=1
+frequency_array["frequency_array_4"].loc[frequency_array["frequency_array_4"].astype(float)>0]=1
+frequency_array["v_numb_known_frequency_lev"]=0
+
+for x in range(int(df_power_line["numb_volt_lev"].max())):
+    
+    cables_array["v_numb_known_cable_lev"] += (cables_array["cables_array_"+str(x+1)])# + cables_array_2 + cables_array_3 + cables_array_4
+
+    frequency_array["v_numb_known_frequency_lev"] += frequency_array["frequency_array_"+str(x+1)]
+
+
+
+v_count_end = (df_power_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]).sum() + (df_power_line["numb_volt_lev"] -frequency_array["v_numb_known_frequency_lev"]).sum()
+
+df_power_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
+# df_neighbours_startpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_1"].isnull() == False].agg(lambda x: df_power_line["startpoint"]
+#                                                     .loc[((df_power_line["voltage_array_1"][x] == (df_power_line["voltage_array_2"])) & (df_power_line["ID"]!= df_power_line["ID"][x])) ].geom_equals(df_power_line["startpoint"][x]))
+
+# ((df_power_line["voltage_array_1"] == df_power_line["voltage_array_1"][x]) | (df_power_line["voltage_array_1"] == df_power_line["voltage_array_2"][x]) | (df_power_line["voltage_array_1"] == df_power_line["voltage_array_3"][x]) | (df_power_line["voltage_array_1"] == df_power_line["voltage_array_4"][x]))
+# len(df_power_line["voltage_array_"+str(y)].loc[df_power_line["voltage_array_"+str(y)].isnull() ==True]) == len(df_power_line["voltage_array_"+str(y)])
 
 timer_end = time.time()
 print('Runtime ' + str(round((timer_end-timer_start)/60, 2)) + ' Minutes')
