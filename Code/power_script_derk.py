@@ -321,6 +321,67 @@ def otg_seperate_voltage_levels(): # noch in Bearbeitung
     v_line["endpoint"]          =   power_line["endpoint"]
 
 
+def otg_numb_unknown_cables_lev(id):
+
+    if power_line["cables_array"].loc[power_line["cables_array"][i]].isnull() == False:
+        v_numb_known_cable_lev += 1
+        numb_unknown_volt_lev = len(power_line["cables_array"]) - v_numb_known_cable_lev
+
+    return numb_unknown_volt_lev
+
+
+def otg_numb_unknown_freq_lev(id):
+
+    if power_line["frequency_array"].loc[power_line["frequency_array"][i]].isnull() == False:
+        v_numb_known_frequency_lev += 1
+        numb_unknown_frequency_lev = len(power_line["frequency_array"]) - v_numb_known_frequency_lev
+
+    return numb_unknown_frequency_lev
+
+
+def otg_check_all_cables_complete(V_id):
+
+    # ?????????????
+    dict_ok = {
+        "ok": []
+    }
+    ok = pd.DataFrame(dict_ok)
+
+    if (power_line.loc[power_line["voltage_array"][1].isnull() == False and power_line["cables_array"][1].isnull() == True or
+                    power_line.loc[power_line["voltage_array"][2].isnull() == False] and power_line.loc[power_line["cables_array"][2].isnull()] == True or
+                    power_line.loc[power_line["voltage_array"][3].isnull() == False] and power_line["cables_array"][3].isnull() == True] or
+                    power_line.loc[power_line["voltage_array"][4].isnull() == False] and power_line["cables_array"][4].isnull() == True]):
+        ok.loc["ok"] = False
+
+
+def otg_all_freq_like(v_voltage_array, v_frequency_array, v_freq)
+
+
+
+
+def otg_3_cables_heuristic():
+
+    dict_v_line = {
+        "id": [],
+        "voltage_array": [],
+        "cables_sum": [],
+        "frequency_array": []
+    }
+    v_line = pd.DataFrame(dict_v_line)
+
+    ok = otg_check_all_cables_complete(id)
+
+    v_line.loc[:, ["id", "voltage_array", "cables_sum", "frequency_array"]] = power_line.loc[(ok["ok"] == False) and
+                                                                                            power_line["power"] == 'line',
+                                                                                            ["id", "voltage_array", "cables_sum", "frequency_array"]]
+
+
+
+def otg_unknown_value_heuristic():
+
+    v_count_end = otg_numb_unknown_cables_lev(id) + otg_numb_unknown_freq_lev(id)
+
+
 
 
 # 806-809:
