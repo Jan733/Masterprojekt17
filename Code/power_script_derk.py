@@ -354,9 +354,48 @@ def otg_check_all_cables_complete(V_id):
         ok.loc["ok"] = False
 
 
-def otg_all_freq_like(v_voltage_array, v_frequency_array, v_freq)
+def otg_all_freq_like(v_voltage_array, v_frequency_array, v_freq):
+
+    if v_voltage_array.isnull():
+        return False
+
+    for a in len(v_voltage_array):
+        if v_voltage_array[a].isnull() or v_frequency_array[a].isnull() or v_frequency_array[a] != v_freq:
+            return False
+
+    return True
 
 
+def otg_int_sum(int_1, int_2, int_3, int_4):
+
+    v_sum = 0
+    if int_1.isnull():
+        v_sum = v_sum + int_1
+
+    if int_2.isnull():
+        v_sum = v_sum + int_2
+
+    if int_3.isnull():
+        v_sum = v_sum + int_3
+
+    if int_4.isnull():
+        v_sum = v_sum + int_4
+
+    return v_sum
+
+
+def otg_known_cables_sum(v_id):
+
+    cables_array = power_line.loc[power_line["id"] == v_id, "cables_array"]
+    return otg_int_sum(int_1 = cables_array[1], int_2 = cables_array[2], int_3 = cables_array[3], int_4 = cables_array[4])
+
+
+def otg_check_cable_complete(v_id, v_lev):
+
+    x = power_line.loc[(power_line["id"] == v_id) and
+                       (power_line["voltage_array"][v_lev].isnull() is not True) and
+                       (power_line["cables_array"][v_lev].isnull() is True)]
+    return x
 
 
 def otg_3_cables_heuristic():
@@ -375,13 +414,46 @@ def otg_3_cables_heuristic():
                                                                                             power_line["power"] == 'line',
                                                                                             ["id", "voltage_array", "cables_sum", "frequency_array"]]
 
+    if (otg_all_freq_like(v_voltage_array = v_line.voltage_array, v_frequency_array = v_line.frequency_array, v_freq = 50) and
+        (v_line.cables_sum - otg_known_cables_sum(v_line.id)) / otg_numb_unknown_cables_lev(v_line.id) == 3):
+
+        for i in range(1,4):
+            otg_check_cable_complete(v_line.id, i)
+            power_line.loc[power_line["id"] == v_id, "cables_array"[i]] = 3
+            if power_line.loc["id"] = v_id:
+                cables_from_3_cables = True
+
+
+def otg_neighbour_heuristic():
+
+    dict_all_neighbours = {
+        "id": [],
+        "cables": [],
+        "frequency": []
+    }
+    all_neighbours = pd.DataFrame(dict_all_neighbours)
+
+    v_id_line = power_line.loc["id", "all_neighbours", "voltage_array", "cables_array", "frequency_array"]
+
+    for i in range(1,4):
+
+        if (v_id_line.loc[v_id_line["voltage_array"][i]].isnull() or
+            (v_id_line.loc[v_id_line["cables_array"][i]].isnull() is False and
+             v_id_line.loc[v_id_line["frequency_array"][i]].isnulll() is False)):
+
+            for j in range(1,2):
+
+                if v_id_line["all_neighbours"][i][j][1][1].isnull():
+
+
 
 
 def otg_unknown_value_heuristic():
 
     v_count_end = otg_numb_unknown_cables_lev(id) + otg_numb_unknown_freq_lev(id)
 
-
+    otg_3_cables_heuristic()
+    otg_neighbour_heuristic()
 
 
 # 806-809:
