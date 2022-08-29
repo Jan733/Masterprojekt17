@@ -516,9 +516,11 @@ def otg_wires_assumption():
 
 def otg_array_search_2(v_element, v_array):
 
-    v_sub = np.find(v_array, v_element)
-    return v_sub
+    v_sub = pd.DataFrame()
+    for i in range(1, len(v_array)):
+        v_sub[i] = np.find(v_array[i], v_element)
 
+    return v_sub
 
 
 def otg_110kv_cables():
@@ -532,7 +534,50 @@ def otg_110kv_cables():
    v_line = pd.DataFrame(dict_v_line)
    v_line["id", "voltage_array", "cables_array", "frequency_array"] = power_line["id", "voltage_array", "cables_array", "frequency_array"]
 
-   v_volt_idx = otg_array_search_2(11000, v_line["voltage_array"])
+   v_volt_idx = otg_array_search_2(v_element=11000, v_array=v_line["voltage_array"])
+
+   power_line.loc[(power_line["id"] == v_line["id"]) and
+                  (v_line["cables_array"][v_volt_idx].isnull() is True) and
+                  ((v_line["frequency_array"][v_volt_idx].isnull() is True) or
+                  (v_line["frequency_array"][v_volt_idx] == 50)), "cables_array"[v_volt_idx]] = 3
+
+
+def otg_point_inside_geometry(param_geom):
+
+    param_geom = gpd.GeoSeries(param_geom)
+    # GeoSeries.centroid replaces ST_Centroid
+    var_cent = param_geom.centroid
+    var_result = var_cent
+
+    while var_result.intersection(param_geom, align=False).is_empty():
+        # Replaces ST_Expand
+        var_result.scale(2,2)
+
+    var_result = gpd.GeoSeries(var_result.intersection(param_geom, align=False)).representative_point()
+
+    return var_result
+
+
+def otg_split_table(v_table, v_parameter):
+
+    table_order = pd.DataFrame()
+    table_order["v_parameter"] = v_table["v_parameter"].copy()
+
+    number_of_rows = len(table_order)
+
+    split_table_1 = table_order.iloc[:number_of_rows/10, :]
+    split_table_2 = table_order.iloc[1 * number_of_rows / 10:2 * number_of_rows / 10, :]
+    split_table_3 = table_order.iloc[2 * number_of_rows / 10:3 * number_of_rows / 10, :]
+    split_table_4 = table_order.iloc[3 * number_of_rows / 10:4 * number_of_rows / 10, :]
+    split_table_5 = table_order.iloc[4 * number_of_rows / 10:5 * number_of_rows / 10, :]
+    split_table_6 = table_order.iloc[5 * number_of_rows / 10:6 * number_of_rows / 10, :]
+    split_table_7 = table_order.iloc[6 * number_of_rows / 10:7 * number_of_rows / 10, :]
+    split_table_8 = table_order.iloc[7 * number_of_rows / 10:8 * number_of_rows / 10, :]
+    split_table_9 = table_order.iloc[8 * number_of_rows / 10:9 * number_of_rows / 10, :]
+    split_table_10 = table_order.iloc[9 * number_of_rows / 10:, :]
+
+    table_order.drop()
+
 
 
 # 806-809:
