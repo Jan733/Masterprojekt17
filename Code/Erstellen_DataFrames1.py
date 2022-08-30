@@ -330,7 +330,7 @@ df_power_substation["connection_110kV"].loc[df_power_line["point_within_end"].lo
 
 # FUNCTIONS BEGIN
 
-def change_datatype_semic(df, column, position):  # (dataframe of your wish, column, position when more than one value)
+'''def change_datatype_semic(df, column, position):  # (dataframe of your wish, column, position when more than one value)
     for x in df[column]:
         try:
             df.iloc[x, df.columns.get_loc(column)] = int(
@@ -400,25 +400,32 @@ def read_frequency():  # vielleicht noch unvollständig
                 change_datatype_semic(df_power_line, "frequency", 1), int) is True:
             for i in df_power_line["numb_volt_lev"]:
                 df_power_line["frequency_array"][i] = change_datatype_wires(df_power_line, "frequency", 1)
-
+'''
 # FUNCTIONS END
 
 # 396
 # Power_line: Read Wires
 # Add wires_array in power_line # Anzahl der Leiterseile im Bündelleiter pro Spannungsebene
 df_power_line["wires_array"] = ""
-df_power_line["wires_array"] = df_power_line["wires"].loc[(df_power_line["wires"].str.count(";")==0) & (df_power_line["wires"]!=np.isnan) & (df_power_line["power"]=="line")]
+df_power_line.wires_array = df_power_line.wires.loc[
+    (df_power_line.wires.str.count(";") == 0) & (df_power_line.wires != np.isnan) & (
+                df_power_line["power"] == "line")]
 
-df_power_line["wires_array"].loc[df_power_line["wires_array"] == "quad"] = 4
-df_power_line["wires_array"].loc[df_power_line["wires_array"] == "triple"] = 3
-df_power_line["wires_array"].loc[df_power_line["wires_array"] == "double"] = 2
-df_power_line["wires_array"].loc[df_power_line["wires_array"] == "single"] = 1
-
-df_power_line["wires_array"] = " "
+df_power_line.wires_array.loc[df_power_line.wires_array == "quad"] = 4
+df_power_line.wires_array.loc[df_power_line.wires_array == "triple"] = 3
+df_power_line.wires_array.loc[df_power_line.wires_array == "double"] = 2
+df_power_line.wires_array.loc[df_power_line.wires_array == "single"] = 1
 #read_wires()
 
 # 403
 # Power_line: Read Frequency
+df_power_line["frequency_array"] = " "
+#read_frequency()
+
+df_power_line.frequency_array = df_power_line.frequency.loc[
+    (df_power_line.frequency.str.count(";") == 0) & (df_power_line.frequency != np.isnan) & (
+                df_power_line["power"] == "line") & (
+        df_power_line.frequency.agg(lambda x: x.replace(".", "")).str.isnumeric())]
 # ...
 ####### Neighbours function with the arrays
 #   Create column including the Frequency when it's not null and it has no semicolons
@@ -538,37 +545,90 @@ df_power_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
 
 #495
 # Create table power_circuits
-df_power_circuits = df_power_relations_applied_changes
-
-#503
-# Create table power_circ_members #gets information from power_line table
-# Delete members, when deleted in power_circuits
-df_power_circ_members = {'relation_id': [], 'line_id': []}  # line_id of relation members
-
+df_power_circuits = df_power_relations_applied_changes.copy()
 
 # 515
-# Change datatypes to int
+# Change datatypes to int  #necessary for double values #TODO: split values first: cables, voltage, wires, frequency
+df_power_circuits.cables = df_power_circuits.cables.str.split(pat=";").str[0]
 
-change_datatype_semic(df_power_circuits, "cables", 1) #position starts from 1
-change_datatype_semic(df_power_circuits, "voltage", 1)
-change_datatype_semic(df_power_circuits, "circuits", 1)
-change_datatype_semic(df_power_circuits, "frequency", 1)
-change_datatype_wires("wires", 1)  # position starts from 1
+df_power_circuits.voltage = df_power_circuits.voltage.str.split(pat=";").str[0]
 
+df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "quad"] = 4
+df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "triple"] = 3
+df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "double"] = 2
+df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "single"] = 1
 
-'''print more rows
+df_power_circuits.frequency = df_power_circuits.frequency.str.split(pat=";").str[0]
+#change_datatype_semic(df_power_circuits, "cables", 1)  # position starts from 1
+#change_datatype_semic(df_power_circuits, "voltage", 1)
+#change_datatype_semic(df_power_circuits, "circuits", 1)
+#change_datatype_semic(df_power_circuits, "frequency", 1)
+#change_datatype_wires("wires", 1)  # position starts from 1
+
+''' #print more rows
 pd.set_option('display.max_columns', None) 
 pd.set_option('display.width', 100000000)
 pd.set_option('display.max_rows', None)
 '''
 
-#536
-#ASSUMPTION: Voltage of 110kV to 60kV
-for x in df_power_circuits["voltage"]:
-    df_power_circuits['voltage'].mask(df_power_circuits['voltage'] == 110000, 60000, inplace=True)
+# 536
+# ASSUMPTION: Voltage of 110kV to 60kV
+df_power_circuits.voltage.loc[df_power_circuits.voltage == "60000"] = 110000
 
-#print(power_circuits)
-#print(power_circuits.head().to_string())
+# 555 Delete all Members in power_circ_members which are not in power_line table cascade method
+#df_power_circ_members = df_power_circ_members[df_power_circ_members["relation_id"].isin(df_power_line["ID"])]
+#print(df_power_circ_members)
+
+# 562 Delete all power_circuits where voltage is NaN
+df_power_circuits.voltage = df_power_circuits.voltage.replace(r'^\s*$', None, regex=True)
+df_power_circuits = df_power_circuits.loc[df_power_circuits.voltage.isnull()==False]
+
+# 574 Delete all power_circuits where voltage < min_volt    # min_voltage = user input!!! TODO
+#df_power_circuits = df_power_circuits.loc[int(df_power_circuits.voltage) < "min_voltage" ]
+
+# 584  power_circuits with no frequency and (volt: 220kV or 380kV) get frequency of 50
+df_power_circuits.frequency = df_power_circuits.frequency.replace(r'^\s*$', None, regex=True)
+df_power_circuits.frequency.loc[(df_power_circuits.frequency.isnull()==True) 
+                                   & ((df_power_circuits.voltage == "220000") | (df_power_circuits.voltage == "380000"))] = 50
+
+# Assumption frequency: only 110kV circuits with no cable INFO OR
+# OR 3, 6, 9, 12 cables get f = 50 Hz
+df_power_circuits.cables = df_power_circuits.cables.replace(r'^\s*$', None, regex=True)
+df_power_circuits.frequency.loc[(df_power_circuits.frequency.isnull()==True) & (df_power_circuits.voltage == "110000")
+                                   & ((df_power_circuits.cables.isnull()==True) | (df_power_circuits.cables == "3") 
+                                      | (df_power_circuits.cables == "6") | (df_power_circuits.cables ==  "9") | (df_power_circuits.cables == "12"))] = 50
+
+### SET Frequency 16.7, cables = 2, 4?
+
+# 609 Delete all power_circuits which have no Frequency
+df_power_circuits = df_power_circuits.loc[df_power_circuits.frequency.isnull()==False]
+
+# 622  circuits with cables = None get certain cables 
+df_power_circuits.cables.loc[(df_power_circuits.cables.isnull()==True) & ((df_power_circuits.frequency == 50) | (df_power_circuits.frequency == "50"))] = 3
+df_power_circuits.cables.loc[(df_power_circuits.cables.isnull()==True) & (df_power_circuits.frequency == "0")] = 2 #no HGÜ cables, because no f = 0Hz
+
+df_power_circuits = df_power_circuits.loc[df_power_circuits.cables.isnull()==False]
+
+# 655 "Denormalize" power_circuits
+# power_circ_members gets information from power_circuits
+df_power_circ_members_pre = pd.DataFrame({"relation_id": df_power_circuits.ID, "line_id": df_power_circuits.Nodes})
+df_power_circ_members_pre = df_power_circ_members_pre.reset_index().set_index('relation_id')
+df_power_circ_members = pd.DataFrame(df_power_circ_members_pre.line_id.apply(ast.literal_eval).explode()).reset_index()
+
+#update power_circ_members columns
+#df_power_circ_members = pd.DataFrame(df_power_circuits.explode("Nodes"))
+
+df_power_circ_members["length"] = ""
+df_power_circ_members["power"] = ""
+df_power_circ_members["way"] = ""
+
+#df_power_circ_members.way = df_power_line["geometry"].loc[(a == b for a, b in zip(df_power_circ_members.relation_id, df_power_line["ID"]))]
+#df_power_circ_members.way = df_power_line["geometry"].loc[(df_power_circ_members.relation_id == df_power_line["ID"])]
+#df_power_circ_members.power = df_power_line.power
+
+# Processingtime in minutes
+timer_end = time.time()
+print('Runtime ' + str(round((timer_end - timer_start) / 60, 2)) + ' Minutes')
 
 
 
