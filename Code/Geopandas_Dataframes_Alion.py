@@ -548,7 +548,7 @@ df_power_circuits.voltage.loc[df_power_circuits.voltage == "60000"] = 110000
 df_power_circuits.voltage = df_power_circuits.voltage.replace(r'^\s*$', None, regex=True)
 df_power_circuits = df_power_circuits.loc[df_power_circuits.voltage.isnull()==False]
 
-# 574 Delete all power_circuits where voltage < min_volt    # min_voltage user input
+# 574 Delete all power_circuits where voltage < min_volt    # min_voltage = user input!!! TODO
 #df_power_circuits = df_power_circuits.loc[int(df_power_circuits.voltage) < "min_voltage" ]
 
 # 584  power_circuits with no frequency and (volt: 220kV or 380kV) get frequency of 50
@@ -582,14 +582,14 @@ df_power_circ_members = pd.DataFrame(df_power_circ_members_pre.line_id.apply(ast
 
 #update power_circ_members columns
 #df_power_circ_members = pd.DataFrame(df_power_circuits.explode("Nodes"))
-'''
+
 df_power_circ_members["length"] = ""
 df_power_circ_members["power"] = ""
 df_power_circ_members["way"] = ""
 
-df_power_circ_members.way = df_power_line.geometry
-df_power_circ_members["length"] = df_power_line["length"]
-df_power_circ_members.power = df_power_line.power'''
+#df_power_circ_members.way = df_power_line["geometry"].loc[(a == b for a, b in zip(df_power_circ_members.relation_id, df_power_line["ID"]))]
+
+#df_power_circ_members.power = df_power_line.power
 
 # Processingtime in minutes
 timer_end = time.time()
