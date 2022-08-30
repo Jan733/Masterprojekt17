@@ -579,7 +579,6 @@ def otg_split_table(v_table, v_parameter):
     table_order.drop()
 
 
-
 # 806-809:
 # otg_power_circuits_problem_tg muss noch geschrieben werden
 
