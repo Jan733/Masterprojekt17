@@ -321,6 +321,262 @@ def otg_seperate_voltage_levels(): # noch in Bearbeitung
     v_line["endpoint"]          =   power_line["endpoint"]
 
 
+def otg_numb_unknown_cables_lev(id):
+
+    if power_line["cables_array"].loc[power_line["cables_array"][i]].isnull() == False:
+        v_numb_known_cable_lev += 1
+        numb_unknown_volt_lev = len(power_line["cables_array"]) - v_numb_known_cable_lev
+
+    return numb_unknown_volt_lev
+
+
+def otg_numb_unknown_freq_lev(id):
+
+    if power_line["frequency_array"].loc[power_line["frequency_array"][i]].isnull() == False:
+        v_numb_known_frequency_lev += 1
+        numb_unknown_frequency_lev = len(power_line["frequency_array"]) - v_numb_known_frequency_lev
+
+    return numb_unknown_frequency_lev
+
+
+def otg_check_all_cables_complete():
+
+    # ?????????????
+    dict_ok = {
+        "ok": []
+    }
+    ok = pd.DataFrame(dict_ok)
+
+    if (power_line.loc[power_line["voltage_array"][1].isnull() == False and power_line["cables_array"][1].isnull() == True or
+                    power_line.loc[power_line["voltage_array"][2].isnull() == False] and power_line.loc[power_line["cables_array"][2].isnull()] == True or
+                    power_line.loc[power_line["voltage_array"][3].isnull() == False] and power_line["cables_array"][3].isnull() == True] or
+                    power_line.loc[power_line["voltage_array"][4].isnull() == False] and power_line["cables_array"][4].isnull() == True]):
+        ok.loc["ok"] = False
+
+    return ok
+
+
+def otg_all_freq_like(v_voltage_array, v_frequency_array, v_freq):
+
+    if v_voltage_array.isnull():
+        return False
+
+    for a in len(v_voltage_array):
+        if v_voltage_array[a].isnull() or v_frequency_array[a].isnull() or v_frequency_array[a] != v_freq:
+            return False
+
+    return True
+
+
+def otg_int_sum(int_1, int_2, int_3, int_4):
+
+    v_sum = 0
+    if int_1.isnull():
+        v_sum = v_sum + int_1
+
+    if int_2.isnull():
+        v_sum = v_sum + int_2
+
+    if int_3.isnull():
+        v_sum = v_sum + int_3
+
+    if int_4.isnull():
+        v_sum = v_sum + int_4
+
+    return v_sum
+
+
+def otg_known_cables_sum(v_id):
+
+    cables_array = power_line.loc[power_line["id"] == v_id, "cables_array"]
+    return otg_int_sum(int_1 = cables_array[1], int_2 = cables_array[2], int_3 = cables_array[3], int_4 = cables_array[4])
+
+
+def otg_check_cable_complete(v_id, v_lev):
+
+    x = power_line.loc[(power_line["id"] == v_id) and
+                       (power_line["voltage_array"][v_lev].isnull() is not True) and
+                       (power_line["cables_array"][v_lev].isnull() is True)]
+    return x
+
+
+def otg_3_cables_heuristic():
+
+    dict_v_line = {
+        "id": [],
+        "voltage_array": [],
+        "cables_sum": [],
+        "frequency_array": []
+    }
+    v_line = pd.DataFrame(dict_v_line)
+
+    ok = otg_check_all_cables_complete(id)
+
+    v_line.loc[:, ["id", "voltage_array", "cables_sum", "frequency_array"]] = power_line.loc[(ok["ok"] == False) and
+                                                                                            power_line["power"] == 'line',
+                                                                                            ["id", "voltage_array", "cables_sum", "frequency_array"]]
+
+    if (otg_all_freq_like(v_voltage_array = v_line.voltage_array, v_frequency_array = v_line.frequency_array, v_freq = 50) and
+        (v_line.cables_sum - otg_known_cables_sum(v_line.id)) / otg_numb_unknown_cables_lev(v_line.id) == 3):
+
+        for i in range(1,4):
+            otg_check_cable_complete(v_line["id"], i)
+            power_line.loc[power_line["id"] == v_id, "cables_array"[i]] = 3
+            if power_line.loc["id"] == v_id:
+                cables_from_3_cables = True
+
+
+def otg_neighbour_heuristic():
+
+    dict_all_neighbours = {
+        "id": [],
+        "cables": [],
+        "frequency": []
+    }
+    all_neighbours = pd.DataFrame(dict_all_neighbours)
+
+    v_id_line = power_line.loc["id", "all_neighbours", "voltage_array", "cables_array", "frequency_array"]
+
+    for i in range(1,4):
+        if (v_id_line.loc[v_id_line["voltage_array"][i]].isnull() or
+            (v_id_line.loc[v_id_line["cables_array"][i]].isnull() is False and
+             v_id_line.loc[v_id_line["frequency_array"][i]].isnulll() is False)):
+            for j in range(1,2):
+
+                if v_id_line["all_neighbours"][i][j][1][1].isnull():
+                    for k in range(1,10):
+                        all_neighbours.loc[["id", "cables", "frequency"]] = power_line.loc[power_line["id"] == v_id_line["all_neighbours"][i][j][k][1],
+                                                                                                          ["id", cables_array[v_id_line.all_neighbours [i][j][k][2]], [frequency_array[v_id_line.all_neighbours [i][j][k][2]]]]
+                if v_id_line["frequency_arrray"][i].isnull() and
+                        all(element == all_neighbours["frequency"][0] for element in list(all_neighbours["frequency"])) is True and
+                        all(element == 0 for element in list(all_neighbours["frequency"])) is False:
+                    power_line.loc[power_line["id"] == v_id_line.id, frequency_array[i]] = all_neighbours["frequency"][1]
+
+                if not v_id_line["frequency_arrray"][i].isnull():
+                    all_neighbours.drop(all_neighbours.loc[all_neighbours["frequency"] != v_id_line["frequency_array"][i]])
+
+                if not all_neighbours["frequency_array"].isnull():
+                    break
+
+                if v_id_line["cables_array"][i].isnull() and not all_neighbours["cables"].isnull():
+                    power_line.loc[power_line["id"] == v_id_line["id"], ["cables_array", "cables_from_neighbour"]] = [all_neighbours["cables"], True]
+
+    all_neighbours.drop()
+
+
+def otg_sum_heuristic():
+
+    dict_v_line = {
+        "id": [],
+        "cables_sum": []
+    }
+    v_line = pd.DataFrame(dict_v_line)
+    ok = otg_check_all_cables_complete()
+    if ok.loc["ok"] is False and power_line.loc["power"] == 'line':
+        v_line.loc["id", "cables_sum"] = power_line["id", "cables_sum"]
+
+    if otg_numb_unknown_cables_lev(v_line.loc(["id"])) == 1 and not v_line["cables_sum"].isnull():
+        v_cables_left = v_line.loc["cables_sum"] - otg_known_cables_sum(v_line.loc(["id"]))
+        for i in range(1,4):
+            if not otg_check_cable_complete(v_line["id"], i):
+                power_line.loc[power_line["id"] == v_line["id"], ["cables_array"[i], "cables_from_sum"]] = [v_cables_left, True]
+
+
+def otg_unknown_value_heuristic():
+
+    v_count_end = otg_numb_unknown_cables_lev(id) + sum(otg_numb_unknown_freq_lev(id))
+
+    while v_count_end > 0:
+        otg_3_cables_heuristic()
+        otg_neighbour_heuristic()
+        otg_sum_heuristic()
+        v_count_end = otg_numb_unknown_cables_lev(id) + sum(otg_numb_unknown_freq_lev(id))
+
+
+def otg_wires_assumption():
+
+    v_min_voltage = abstr_values.loc[abstr_values["val_descripton"] == 'min_voltage', 'val_int']
+
+    branch_data.loc[(branch_data["voltage"] >= 380000) and
+                    (branch_data["frequency"] == 50) and
+                    (branch_data["power"] == 'line'),
+                    'wires'] = 4
+
+    branch_data.loc[(branch_data["wires"].isnull() is True) and
+                    (branch_data["voltage"] >= v_min_voltage) and
+                    (branch_data["voltage"] < 380000) and
+                    (branch_data["voltage"] < 110000) and
+                    (branch_data["power"] == 'line'),
+                    "wires"] = 2
+
+    branch_data.loc[(branch_data["wires"].isnull() is True)
+                    and (branch_data["power"] == 'line'),
+                    'wires'] = 1
+
+
+def otg_array_search_2(v_element, v_array):
+
+    v_sub = pd.DataFrame()
+    for i in range(1, len(v_array)):
+        v_sub[i] = np.find(v_array[i], v_element)
+
+    return v_sub
+
+
+def otg_110kv_cables():
+
+   dict_v_line = {
+       "id": [],
+       "voltage_array": [],
+       "cables_array": [],
+       "frequency_array": []
+   }
+   v_line = pd.DataFrame(dict_v_line)
+   v_line["id", "voltage_array", "cables_array", "frequency_array"] = power_line["id", "voltage_array", "cables_array", "frequency_array"]
+
+   v_volt_idx = otg_array_search_2(v_element=11000, v_array=v_line["voltage_array"])
+
+   power_line.loc[(power_line["id"] == v_line["id"]) and
+                  (v_line["cables_array"][v_volt_idx].isnull() is True) and
+                  ((v_line["frequency_array"][v_volt_idx].isnull() is True) or
+                  (v_line["frequency_array"][v_volt_idx] == 50)), "cables_array"[v_volt_idx]] = 3
+
+
+def otg_point_inside_geometry(param_geom):
+
+    param_geom = gpd.GeoSeries(param_geom)
+    # GeoSeries.centroid replaces ST_Centroid
+    var_cent = param_geom.centroid
+    var_result = var_cent
+
+    while var_result.intersection(param_geom, align=False).is_empty():
+        # Replaces ST_Expand
+        var_result.scale(2,2)
+
+    var_result = gpd.GeoSeries(var_result.intersection(param_geom, align=False)).representative_point()
+
+    return var_result
+
+
+def otg_split_table(v_table, v_parameter):
+
+    table_order = pd.DataFrame()
+    table_order["v_parameter"] = v_table["v_parameter"].copy()
+
+    number_of_rows = len(table_order)
+
+    split_table_1 = table_order.iloc[:number_of_rows/10, :]
+    split_table_2 = table_order.iloc[1 * number_of_rows / 10:2 * number_of_rows / 10, :]
+    split_table_3 = table_order.iloc[2 * number_of_rows / 10:3 * number_of_rows / 10, :]
+    split_table_4 = table_order.iloc[3 * number_of_rows / 10:4 * number_of_rows / 10, :]
+    split_table_5 = table_order.iloc[4 * number_of_rows / 10:5 * number_of_rows / 10, :]
+    split_table_6 = table_order.iloc[5 * number_of_rows / 10:6 * number_of_rows / 10, :]
+    split_table_7 = table_order.iloc[6 * number_of_rows / 10:7 * number_of_rows / 10, :]
+    split_table_8 = table_order.iloc[7 * number_of_rows / 10:8 * number_of_rows / 10, :]
+    split_table_9 = table_order.iloc[8 * number_of_rows / 10:9 * number_of_rows / 10, :]
+    split_table_10 = table_order.iloc[9 * number_of_rows / 10:, :]
+
+    table_order.drop()
 
 
 # 806-809:

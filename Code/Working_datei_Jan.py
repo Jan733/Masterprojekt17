@@ -5,8 +5,6 @@ Created on Tue Jul  5 18:44:01 2022
 @author: Jan
 """
 
-# Derk Test
-
 import geopandas as gpd
 import pandas as pd
 import numpy as np
