@@ -437,9 +437,10 @@ df_power_line["voltage_array_4"]= df_power_line["voltage_array_4"].replace(r'^\s
 #   Neighbours function to identify possible neighbours for every line
 df_neighbours_startpoint_indexes = df_power_line[["index_2"]].copy()
 df_neighbours_endpoint_indexes = df_power_line[["index_2"]].copy()
+
 for y in range(1,5,1):
     if len(df_power_line["voltage_array_"+str(y)].loc[df_power_line["voltage_array_"+str(y)].isnull() ==True]) != len(df_power_line["voltage_array_"+str(y)]):
-        df_neighbours_startpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_"+str(y)].isnull() == False].agg(lambda x: df_power_line["startpoint"]
+        df_neighbours_startpoint = df_power_line["index_2"].loc[df_power_line["voltage_array_"+str(y)].isnull() == False].agg(lambda x: df_power_line["startpoint"]
                                                             .loc[((df_power_line["voltage_array_"+str(y)][x] == df_power_line["voltage_array_1"]) | 
                                                                (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_2"])) | 
                                                                (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_3"])) | 
@@ -447,7 +448,7 @@ for y in range(1,5,1):
         
         if df_neighbours_startpoint.empty == False:
             df_neighbours_startpoint["indexes"] = df_neighbours_startpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
-            df_neighbours_startpoint_indexes["index"+str(y)] = df_neighbours_startpoint["indexes"]
+            df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(y)] = df_neighbours_startpoint["indexes"]
 
         df_neighbours_endpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_"+str(y)].isnull() == False].agg(lambda x: df_power_line["endpoint"]
                                                             .loc[((df_power_line["voltage_array_"+str(y)][x] == df_power_line["voltage_array_1"]) | 
@@ -456,7 +457,7 @@ for y in range(1,5,1):
                                                                (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_4"]))) & (df_power_line["ID"]!= df_power_line["ID"][x]) ].geom_equals(df_power_line["startpoint"][x]))
         if df_neighbours_endpoint.empty == False:    
             df_neighbours_endpoint["indexes"] = df_neighbours_endpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
-            df_neighbours_endpoint_indexes["index"+str(y)] = df_neighbours_endpoint["indexes"]
+            df_neighbours_endpoint_indexes["neighbour_endpoint_lev_"+str(y)] = df_neighbours_endpoint["indexes"]
             
 
 # df_power_line["cables_array_1"]= df_power_line["cables_array_1"].replace(r'^\s*$', 0, regex=True)
