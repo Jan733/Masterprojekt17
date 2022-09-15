@@ -326,83 +326,6 @@ df_power_substation["connection_110kV"].loc[df_power_line["point_within_start"].
 df_power_substation["connection_110kV"].loc[df_power_line["point_within_end"].loc[(df_power_line["point_within_end"]>=0) & (df_power_line["voltage_array_1"] == "110000")]] =True
 
 
-    
-
-# FUNCTIONS BEGIN
-
-'''def change_datatype_semic(df, column, position):  # (dataframe of your wish, column, position when more than one value)
-    for x in df[column]:
-        try:
-            df.iloc[x, df.columns.get_loc(column)] = int(
-                df.at[x, column].split(";", position)[
-                    position - 1])  # value at *position* will be considered, if there are more than one
-        except ValueError:
-            df.iloc[x, df.columns.get_loc(column)] = ""
-        value = df.iloc[x, df.columns.get_loc(column)]
-        return value
-
-
-def change_datatype_wires(df, column, position):  # (dataframe of your wish, column, position when more than one value)
-    for x in df[column]:
-        wire_type = df.at[x, column].split(";", position)[
-            position - 1]  # wire_type at *position* will be considered, if there are more than one
-        match wire_type:
-            case "quad":
-                df.iloc[x, df.columns.get_loc(column)] = 4
-            case "triple":
-                df.iloc[x, df.columns.get_loc(column)] = 3
-            case "double":
-                df.iloc[x, df.columns.get_loc(column)] = 2
-            case "single":
-                df.iloc[x, df.columns.get_loc(column)] = 1
-            case _:
-                df.iloc[
-                    x, df.columns.get_loc(column)] = ""  # works only for quad, triple, double, single
-        value = df.iloc[x, df.columns.get_loc(column)]
-        return value
-
-def read_circuits():
-    for x in df_power_line["cables"]:
-        frequency_value = df_power_line["frequency"][x]
-        numb_volt_lev = df_power_line["numb_volt_lev"][x]
-        if "cable" in df_power_line["power"].values:
-            if np.isnan(df_power_line["cables"][x]) is True \
-                    and np.isnan(df_power_line["circuits"][x]) is False and ";" not in df_power_line["circuits"][x] \
-                    and (df_power_line["numb_volt_lev"][x] == 1 or
-                         (df_power_line["numb_volt_lev"][x] == change_datatype_semic(df_power_line, "circuits", 1) and
-                         len(df_power_line["frequency"]) == df_power_line["numb_volt_lev"][x])):
-                match frequency_value:
-                    case 50:
-                        cables_per_circuit = 3
-                    case 0:
-                        cables_per_circuit = 2
-                    case 16.7:
-                        cables_per_circuit = 2
-                    case _:
-                        cables_per_circuit = ""
-                match numb_volt_lev:
-                    case 1:
-                        df_power_line["cables_array"][x] = cables_per_circuit * change_datatype_semic(df_power_line, "circuits",1) # in functions steht 1 statt x?
-                    case numb_volt_lev if (numb_volt_lev > 1 and numb_volt_lev == change_datatype_semic(df_power_line, "circuits", 1)):
-                        for i in numb_volt_lev:
-                            df_power_line["cables_array"][i] = cables_per_circuit
-
-def read_wires():
-    for x in df_power_line["wires"]:
-        if np.isnan(df_power_line["wires"][x]) is False and "line" in df_power_line["power"].values and ";" not in \
-                df_power_line["power"][x]:
-            for i in df_power_line["numb_volt_lev"]:
-                df_power_line["wires_array"][i] = change_datatype_wires(df_power_line, "wires", 1)
-
-def read_frequency():  # vielleicht noch unvollständig
-    for x in df_power_line["frequency"]:
-        if np.isnan(df_power_line["frequency"][x]) is False and ";" not in df_power_line["frequency"][x] and isinstance(
-                change_datatype_semic(df_power_line, "frequency", 1), int) is True:
-            for i in df_power_line["numb_volt_lev"]:
-                df_power_line["frequency_array"][i] = change_datatype_wires(df_power_line, "frequency", 1)
-'''
-# FUNCTIONS END
-
 # 396
 # Power_line: Read Wires
 # Add wires_array in power_line # Anzahl der Leiterseile im Bündelleiter pro Spannungsebene
@@ -415,17 +338,59 @@ df_power_line.wires_array.loc[df_power_line.wires_array == "quad"] = 4
 df_power_line.wires_array.loc[df_power_line.wires_array == "triple"] = 3
 df_power_line.wires_array.loc[df_power_line.wires_array == "double"] = 2
 df_power_line.wires_array.loc[df_power_line.wires_array == "single"] = 1
-#read_wires()
 
 # 403
 # Power_line: Read Frequency
-df_power_line["frequency_array"] = " "
-#read_frequency()
 
+df_power_line["frequency_array"] = " "
 df_power_line.frequency_array = df_power_line.frequency.loc[
     (df_power_line.frequency.str.count(";") == 0) & (df_power_line.frequency != np.isnan) & (
                 df_power_line["power"] == "line") & (
         df_power_line.frequency.agg(lambda x: x.replace(".", "")).str.isnumeric())]
+
+# 425
+# CIRCUITS
+# Create CIRCUITS from CABLES
+
+df_power_line.circuits.loc[df_power_line.circuits.str.split(pat=";").str[0] == "quad"] = 4
+df_power_line.circuits.loc[df_power_line.circuits.str.split(pat=";").str[0] == "triple"] = 3
+df_power_line.circuits.loc[df_power_line.circuits.str.split(pat=";").str[0] == "double"] = 2
+df_power_line.circuits.loc[df_power_line.circuits.str.split(pat=";").str[0] == "single"] = 1
+
+def read_circuits():
+    for x in df_power_line.index:
+        frequency_value = df_power_line["frequency"][x]
+        numb_volt_lev = df_power_line["numb_volt_lev"][x]
+        if "cable" in df_power_line["power"].values:
+            if np.isnan(df_power_line.cables[x]) is True \
+                    and np.isnan(df_power_line["circuits"][x]) is False and ";" not in df_power_line["circuits"][x] \
+                    and (df_power_line["numb_volt_lev"][x] == 1 or
+                         (df_power_line["numb_volt_lev"][x] == df_power_line.circuits[x] and
+                          len(df_power_line["frequency"])) == df_power_line["numb_volt_lev"][x]):
+                match frequency_value:
+                    case 50:
+                        cables_per_circuit = 3
+                    case 0:
+                        cables_per_circuit = 2
+                    #case 16.7:
+                    #    cables_per_circuit = 2
+                    case _:
+                        cables_per_circuit = ""
+                match numb_volt_lev:
+                    case 1:
+                        df_power_line["cables_array"][1] = cables_per_circuit * df_power_line.circuits[x]
+                    case numb_volt_lev if (
+                                numb_volt_lev > 1 and numb_volt_lev == df_power_line.wires[x]):
+                        for i in numb_volt_lev:
+                            df_power_line["cables_array"][i] = cables_per_circuit
+
+read_circuits()
+
+# 431
+# Calculating Length of cables of geopandas series and
+# importing it into an array "length"
+df_power_line["length"] = df_power_line["geometry"].length
+
 # ...
 ####### Neighbours function with the arrays
 #   Create column including the Frequency when it's not null and it has no semicolons
@@ -525,96 +490,16 @@ v_count_end = (df_power_line["numb_volt_lev"] - cables_array["v_numb_known_cable
 
 df_power_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
 
-# 396
-# Power_line: Read Wires
-# Add wires_array in power_line # Anzahl der Leiterseile im Bündelleiter pro Spannungsebene
-df_power_line["wires_array"] = ""
-df_power_line.wires_array = df_power_line.wires.loc[
-    (df_power_line.wires.str.count(";") == 0) & (df_power_line.wires != np.isnan) & (
-                df_power_line["power"] == "line")]
-
-df_power_line.wires_array.loc[df_power_line.wires_array == "quad"] = 4
-df_power_line.wires_array.loc[df_power_line.wires_array == "triple"] = 3
-df_power_line.wires_array.loc[df_power_line.wires_array == "double"] = 2
-df_power_line.wires_array.loc[df_power_line.wires_array == "single"] = 1
-
-# 403
-# Power_line: Read Frequency
-# ...
-
-df_power_line["frequency_array"] = " "
-df_power_line.frequency_array = df_power_line.frequency.loc[
-    (df_power_line.frequency.str.count(";") == 0) & (df_power_line.frequency != np.isnan) & (
-                df_power_line["power"] == "line") & (
-        df_power_line.frequency.agg(lambda x: x.replace(".", "")).str.isnumeric())]
-
-# 425
-# CIRCUITS
-# Create CIRCUITS from CABLES
-
-df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "quad"] = 4
-df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "triple"] = 3
-df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "double"] = 2
-df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "single"] = 1
-
-def read_circuits():
-    for x in df_power_line.cables:
-        frequency_value = df_power_line["frequency"][x]
-        numb_volt_lev = df_power_line["numb_volt_lev"][x]
-        if "cable" in df_power_line["power"].values:
-            if np.isnan(df_power_line.cables[x]) is True \
-                    and np.isnan(df_power_line["circuits"][x]) is False and ";" not in df_power_line["circuits"][x] \
-                    and (df_power_line["numb_volt_lev"][x] == 1 or
-                         (df_power_line["numb_volt_lev"][x] == df_power_circuits.wires[x] and
-                          len(df_power_line["frequency"])) == df_power_line["numb_volt_lev"][x]):
-                match frequency_value:
-                    case 50:
-                        cables_per_circuit = 3
-                    case 0:
-                        cables_per_circuit = 2
-                    #case 16.7:
-                    #    cables_per_circuit = 2
-                    case _:
-                        cables_per_circuit = ""
-                match numb_volt_lev:
-                    case 1:
-                        df_power_line["cables_array"][1] = df_power_circuits.wires[x]
-                    case numb_volt_lev if (
-                                numb_volt_lev > 1 and numb_volt_lev == df_power_circuits.wires[x]):
-                        for i in numb_volt_lev:
-                            df_power_line["cables_array"][i] = cables_per_circuit
-
-read_circuits()
-
-# 431
-# Calculating Length of cables of geopandas series and
-# importing it into an array "length"
-df_power_line["length"] = df_power_line["geometry"].length
-
-# 451
-# Neighbourhood, neighbours
-# Deliver information to neighbouring cables, where that information is missing
-df_power_line["all_neighbours"] = ""
-
-# 466
-# Cable and frequency heuristics (Annahmen)
-df_power_line["cables_from_neighbour"] = ""
-df_power_line["frequency_from_neighbour"] = ""
-df_power_line["cables_from_3_cables"] = ""
-df_power_line["cables_from_sum"] = ""
-
-# 479 unknown value heuristic
-numb_unknown_cables_lev = ""
-
 # 495
 # Create table power_circuits
 df_power_circuits = df_power_relations_applied_changes.copy()
+
 
 # 503
 # Create table power_circ_members #gets information from power_line table (later)
 
 # 515
-# Change datatypes to int  #necessary for double values #TODO: split values first: cables, voltage, wires, frequency
+# Change datatypes to int  #necessary for double values. Split values first: cables, voltage, wires, frequency
 df_power_circuits.cables = df_power_circuits.cables.str.split(pat=";").str[0]
 
 df_power_circuits.voltage = df_power_circuits.voltage.str.split(pat=";").str[0]
@@ -675,6 +560,7 @@ df_power_circ_members["way"] = ""
 # Processingtime in minutes
 timer_end = time.time()
 print('Runtime ' + str(round((timer_end - timer_start) / 60, 2)) + ' Minutes')
+
 
 
 
