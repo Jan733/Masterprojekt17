@@ -519,11 +519,14 @@ df_power_line["voltage_array_4"]= df_power_line["voltage_array_4"].replace(r'^\s
 # df_neighbours_startpoint["indexes"] = df_neighbours_startpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
 
 #   Neighbours function to identify possible neighbours for every line
+#   The indexes are in df_neighbours_startpoint_indexes and ...endpoint_indexes. In there Index 1 or 2 or 3 or 4 are the voltage levels (line x could have line y in voltage lev1 while line y has line x in volt_lev3, becuase line x has just one voltage lev and line y has 3)
+#
 df_neighbours_startpoint_indexes = df_power_line[["index_2"]].copy()
 df_neighbours_endpoint_indexes = df_power_line[["index_2"]].copy()
+
 for y in range(1,5,1):
     if len(df_power_line["voltage_array_"+str(y)].loc[df_power_line["voltage_array_"+str(y)].isnull() ==True]) != len(df_power_line["voltage_array_"+str(y)]):
-        df_neighbours_startpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_"+str(y)].isnull() == False].agg(lambda x: df_power_line["startpoint"]
+        df_neighbours_startpoint = df_power_line["index_2"].loc[df_power_line["voltage_array_"+str(y)].isnull() == False].agg(lambda x: df_power_line["startpoint"]
                                                             .loc[((df_power_line["voltage_array_"+str(y)][x] == df_power_line["voltage_array_1"]) | 
                                                                (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_2"])) | 
                                                                (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_3"])) | 
@@ -531,7 +534,7 @@ for y in range(1,5,1):
         
         if df_neighbours_startpoint.empty == False:
             df_neighbours_startpoint["indexes"] = df_neighbours_startpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
-            df_neighbours_startpoint_indexes["index"+str(y)] = df_neighbours_startpoint["indexes"]
+            df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(y)] = df_neighbours_startpoint["indexes"]
 
         df_neighbours_endpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_"+str(y)].isnull() == False].agg(lambda x: df_power_line["endpoint"]
                                                             .loc[((df_power_line["voltage_array_"+str(y)][x] == df_power_line["voltage_array_1"]) | 
@@ -540,7 +543,7 @@ for y in range(1,5,1):
                                                                (df_power_line["voltage_array_"+str(y)][x] == (df_power_line["voltage_array_4"]))) & (df_power_line["ID"]!= df_power_line["ID"][x]) ].geom_equals(df_power_line["startpoint"][x]))
         if df_neighbours_endpoint.empty == False:    
             df_neighbours_endpoint["indexes"] = df_neighbours_endpoint.apply(lambda row: row[row == 1].index.tolist() , axis=1)
-            df_neighbours_endpoint_indexes["index"+str(y)] = df_neighbours_endpoint["indexes"]
+            df_neighbours_endpoint_indexes["neighbour_endpoint_lev_"+str(y)] = df_neighbours_endpoint["indexes"]
             
 
 # df_power_line["cables_array_1"]= df_power_line["cables_array_1"].replace(r'^\s*$', 0, regex=True)
@@ -563,21 +566,20 @@ frequency_array["frequency_array_4"].loc[frequency_array["frequency_array_4"].as
 frequency_array["v_numb_known_frequency_lev"]=0
 
 
-
+# start of otg_unknown_value_heuristic
+    
 for x in range(int(df_power_line["numb_volt_lev"].max())):
     
     cables_array["v_numb_known_cable_lev"] += (cables_array["cables_array_"+str(x+1)])# + cables_array_2 + cables_array_3 + cables_array_4
 
     frequency_array["v_numb_known_frequency_lev"] += frequency_array["frequency_array_"+str(x+1)]
 
+# how many unknown cables and frequencies are left
+
 v_count_end = (df_power_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]).sum() + (df_power_line["numb_volt_lev"] -frequency_array["v_numb_known_frequency_lev"]).sum()
 
 
-while v_count_end > 0:
-    otg_3_cables_heuristic()
-    otg_neighbour_heuristic()
-    otg_sum_heuristic()
-    v_count_end = otg_numb_unknown_cables_lev(id) + sum(otg_numb_unknown_freq_lev(id))
+# 
 
 def otg_check_all_cables_complete():
 
@@ -588,60 +590,180 @@ def otg_check_all_cables_complete():
     }
     ok = pd.DataFrame(dict_ok)
     ok["index_2"] = df_power_line["index_2"].copy()
-    #ok["ok"]=""
-    ok["ok"] = ok["ok"].loc[(((df_power_line["voltage_array_1"].fillna(0) == 0) & ((df_power_line["cables_array_1"]) !=0)) |
-                    ((df_power_line["voltage_array_2"].fillna(0) == 0) & (df_power_line["cables_array_2"] !=0)) |
-                    ((df_power_line["voltage_array_3"].fillna(0) == 0) & (df_power_line["cables_array_3"] !=0)) |
-                    ((df_power_line["voltage_array_4"].fillna(0) == 0) & (df_power_line["cables_array_4"] !=0)))] = False
-       # ok.loc["ok"] = False
+
+    ok["ok"] = True
+    ok["ok"].loc[(((df_power_line["voltage_array_1"].fillna(0) != 0) & ((cables_array["cables_array_1"]) ==0)) |
+                    ((df_power_line["voltage_array_2"].fillna(0) != 0) & (cables_array["cables_array_2"] ==0)) |
+                    ((df_power_line["voltage_array_3"].fillna(0) != 0) & (cables_array["cables_array_3"] ==0)) |
+                    ((df_power_line["voltage_array_4"].fillna(0) != 0) & (cables_array["cables_array_4"] ==0)))] = False
+
 
     return ok
 
 
 
-def otg_3_cables_heuristic():
+#def otg_3_cables_heuristic():
+    
+ok = otg_check_all_cables_complete()
+v_line = df_power_line.loc[(ok["ok"] == False) & (df_power_line["power"] == 'line')]
 
-    ok = otg_check_all_cables_complete()
-    v_line = df_power_line.loc[(ok["ok"] == False) & (df_power_line["power"] == 'line')]
+v_line["freq_alike_1"]= True
+v_line["freq_alike_2"]= True
+v_line["freq_alike_3"]= True
+v_line["freq_alike_4"]= True
+
+for y in range(1,5,1):
+    v_line["freq_alike_"+str(y)].loc[(v_line["voltage_array_"+str(y)].isnull() == True) | ((v_line["voltage_array_"+str(y)].isnull() == False) &
+                                     ((v_line["frequency_array_"+str(y)].isnull() == True) |( v_line["frequency_array_"+str(y)] != "50")))] = False
+
+v_line["freq_alike"] = False
+v_line["freq_alike"].loc[((v_line["freq_alike_1"]== True) & (v_line["freq_alike_2"]== True) & (v_line["freq_alike_3"]== True) & (v_line["freq_alike_4"]== True))] = True
+
+
+v_line[["cables_array_1", "cables_array_2", "cables_array_3", "cables_array_4"]] = v_line[["cables_array_1", "cables_array_2", "cables_array_3", "cables_array_4"]].replace(r'^\s*$', None, regex=True)
+
+
+v_line["known_cables_sum"] = 0
+v_line["known_cables_sum"] = (v_line["cables_array_1"].fillna(0) + v_line["cables_array_2"].fillna(0) +
+                                v_line["cables_array_3"].fillna(0) + v_line["cables_array_4"].fillna(0))
+
+v_line["unknown_cables_lev"] = 0
+v_line["unknown_cables_lev"] =v_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
+
+# if (v_line["freq_alike_"+str(y)] == True and
+#     ((v_line["cables_sum"] - v_line["known_cables_sum"]) / v_line["unknown_cables_lev"] == 3)):
+
+df_power_line["cables_from_3_cables"]=False
+# TODO     
+for x in range (1,5,1):    
+   # v_line ["cables_array_"+str(x)].loc[((v_line ["cables_array_"+str(x)].isnull()==True) & (v_line["freq_alike_"+str(x)] == True)  & ((v_line["cables_sum"] - v_line["known_cables_sum"]) / v_line["unknown_cables_lev"] == 3))] = 3
+   df_power_line ["cables_array_"+str(x)].loc[v_line["index_2"].loc[((v_line ["cables_array_"+str(x)].isnull()==True) & (v_line["freq_alike_"+str(x)] == True)  & ((v_line["cables_sum"] - v_line["known_cables_sum"]) / v_line["unknown_cables_lev"] == 3))]]=15
+   df_power_line ["cables_from_3_cables"].loc[v_line["index_2"].loc[((v_line ["cables_array_"+str(x)].isnull()==True) & (v_line["freq_alike_"+str(x)] == True)  & ((v_line["cables_sum"] - v_line["known_cables_sum"]) / v_line["unknown_cables_lev"] == 3))]] = True
+
+
+
+    #return ok, v_line
+
+
+
+# -- Guckt alle Nachbarn (die in der Tabelle stehen) durch, ob geeignete Informationen enthalten. 
+# -- Wenn ja, dann schreibe Cable-Informationen und Frequenz
+# -- Frequenz kann auch dann übernommen werden, wenn alle Nachbarn dieselbe Frequenz haben. 
+
+#def otg_neighbour_heuristic():
+# dict_all_neighbours = {
+#     "id": [],
+#     "cables": [],
+#     "frequency": []
+# }
+# df_all_neighbours = pd.DataFrame(dict_all_neighbours)
+v_id_line = df_power_line.copy()
+   # neighbours_volt_lev1 = df_neighbours_startpoint_indexes["neighbour_startpoint_lev_1"].str.split(",")
+# for x in range(1,5):
     
-    v_line["freq_alike_1"]= True
-    v_line["freq_alike_2"]= True
-    v_line["freq_alike_3"]= True
-    v_line["freq_alike_4"]= True
+#     v_id_line = df_power_line.loc[((df_power_line["voltage_array_"+str(x)].isnull()==False) | ((df_power_line["cables_array_"+str(x)] == 0) & (df_power_line["frequency_array_"+str(x)].isnull() == True)))].copy()
+#     df_all_neighbours.apply()
     
-    for y in range(1,5,1):
-        v_line["freq_alike_"+str(y)].loc[(v_line["voltage_array_"+str(y)].isnull() == True) | ((v_line["voltage_array_"+str(y)].isnull() == False) &
-                                         ((v_line["frequency_array_"+str(y)].isnull() == True) |( v_line["frequency_array_"+str(y)] != "50")))] = False
-  
-    v_line["known_cables_sum"] = 0
-    v_line["known_cables_sum"] = (v_line["cables_array_1"].fillna(0) + v_line["cables_array_2"].fillna(0) +
-                                    v_line["cables_array_3"].fillna(0) + v_line["cables_array_4"].fillna(0))
+#    for x in range(1, len(df_neighbours_startpoint_indexes.columns)):
+x=1
+neighbours_start_lev_1 = df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)].loc[df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)].str.len()>0].apply(pd.Series)
     
-    v_line["unknown_cables_lev"] = 0
-    v_line["unknown_cables_lev"] =v_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
+#        df_all_neighbours ["cables"] = v_id_line["cables_array_1"].loc[((v_id_line["voltage_array_"+str(x)].isnull()==False) | ((v_id_line["cables_array_"+str(x)].isnull()==True) & (v_id_line["frequency_array_"+str(x)].isnull() == True)))]
+
+# neighbours_start_lev_1["frequency_"+str(x)] = df_power_line["frequency_array_1"].loc[neighbours_start_lev_1[]]
+# neighbours_start_lev_1 = neighbours_start_lev_1.append(pd.DataFrame(df_power_line["frequency_array_1"].loc[neighbours_start_lev_1[x].loc[neighbours_start_lev_1[x]>0]], columns=["frequ_1"]))
+number_columns = len(neighbours_start_lev_1.columns)
+
+for x in range (number_columns):
+    data=pd.DataFrame()
+    data["frequency_"+str(x)] = df_power_line["frequency_array_1"].loc[neighbours_start_lev_1[x].loc[neighbours_start_lev_1[x]>0]]
     
-    if (v_line["freq_alike_"+str(y)] == True and
-        ((v_line["cables_sum"] - v_line["known_cables_sum"]) / v_line["unknown_cables_lev"] == 3)):
+    neighbours_start_lev_1 = neighbours_start_lev_1.merge(data, how="left", left_on =x, right_index=True)
+    neighbours_start_lev_1 = neighbours_start_lev_1.groupby(neighbours_start_lev_1.index).first()
+
+    
+    neighbours_start_lev_1["values_same_"+str(x)]="" 
+
+for x in range (1, number_columns+1):    
+    neighbours_start_lev_1["values_same_"+str(x-1)] = neighbours_start_lev_1.iloc[:, number_columns:number_columns+x].eq(neighbours_start_lev_1.iloc[:,number_columns:number_columns+x], axis=0).all(1)
         
-    v_line["unknown"]=0
-    v_line["unknown"] = (v_line["cables_sum"] - v_line["known_cables_sum"]) / v_line["unknown_cables_lev"]
-        
-        
-        for i in range(1,4):
-            otg_check_cable_complete(v_line["id"], i)
-            power_line.loc[power_line["id"] == v_id, "cables_array"[i]] = 3
-            if power_line.loc["id"] == v_id:
-                cables_from_3_cables = True
+neighbours_start_lev_1 ["frequenz"]=0
+for x in range (1, number_columns):
+    neighbours_start_lev_1["frequenz"].loc[(neighbours_start_lev_1["frequenz"].fillna(0)==0)] = neighbours_start_lev_1["frequency_0"].loc[(neighbours_start_lev_1[x].fillna(0)==0) & (neighbours_start_lev_1["values_same_"+str(x-1)]==True)|(neighbours_start_lev_1["values_same_"+str(number_columns-1)]==True)]
+    
+neighbours_start_lev_1["index_2"]=neighbours_start_lev_1.index
+neighbours_start_lev_1["frequency_full"] = df_power_line["frequency_array_1"].loc[neighbours_start_lev_1["index_2"]]
+df_power_line["frequency_array_1"].loc[neighbours_start_lev_1["index_2"].loc[(neighbours_start_lev_1["frequenz"].fillna(0)!=0) & (neighbours_start_lev_1["frequency_full"].isnull()==True)]] = neighbours_start_lev_1["frequenz"].loc[neighbours_start_lev_1["frequenz"].fillna(0)!=0]
+    
+
+for x in range (number_columns):
+    data=pd.DataFrame()
+    data["cables_"+str(x)] = df_power_line["cables_array_1"].loc[neighbours_start_lev_1[x].loc[neighbours_start_lev_1[x]>0]]
+    
+    neighbours_start_lev_1 = neighbours_start_lev_1.merge(data, how="left", left_on =x, right_index=True)
+    neighbours_start_lev_1 = neighbours_start_lev_1.groupby(neighbours_start_lev_1.index).first()
 
 
+neighbours_start_lev_1["cables"]=0
+for x in range (number_columns):
+    neighbours_start_lev_1["cables"].loc[neighbours_start_lev_1["cables"].fillna(0)==0] = neighbours_start_lev_1["cables_"+str(x)].loc[(neighbours_start_lev_1["cables_"+str(x)]>0) & (neighbours_start_lev_1["frequenz"].fillna(0)!=0)]
 
-def otg_numb_unknown_cables_lev(id):
 
-    if power_line["cables_array"].loc[power_line["cables_array"][i]].isnull() == False:
-        v_numb_known_cable_lev += 1
-        numb_unknown_volt_lev = len(power_line["cables_array"]) - v_numb_known_cable_lev
+neighbours_start_lev_1["cables_full"] = df_power_line["cables_array_1"].loc[neighbours_start_lev_1["index_2"]]
 
-    return numb_unknown_volt_lev
+df_power_line["cables_array_1"].loc[neighbours_start_lev_1["index_2"].loc[(neighbours_start_lev_1["cables"].fillna(0)!=0) & (neighbours_start_lev_1["cables_full"].fillna(0) <1)]] = neighbours_start_lev_1["cables"].loc[neighbours_start_lev_1["cables"].fillna(0)!=0]
+    
+
+#def otg_sum_heuristic():
+ok_2 = otg_check_all_cables_complete()
+v_line_2 = df_power_line.loc[(ok["ok"] == False) & (df_power_line["power"] == 'line')]
+cables_array_2 = df_power_line[["cables_array_1","cables_array_2", "cables_array_3", "cables_array_4"]].replace(r'^\s*$', 0, regex=True).copy()
+
+cables_array_2["cables_array_1"].loc[cables_array_2["cables_array_1"]>0]=1
+cables_array_2["cables_array_2"].loc[cables_array_2["cables_array_2"]>0]=1
+cables_array_2["cables_array_3"].loc[cables_array_2["cables_array_3"]>0]=1
+cables_array_2["cables_array_4"].loc[cables_array_2["cables_array_4"]>0]=1
+cables_array_2["v_numb_known_cable_lev"] = 0
+   
+for x in range(int(df_power_line["numb_volt_lev"].max())):
+    
+    cables_array_2["v_numb_known_cable_lev"] += (cables_array_2["cables_array_"+str(x+1)])# + cables_array_2 + cables_array_3 + cables_array_4
+
+v_line_2["unknown_cables_lev"] = 0
+v_line_2["unknown_cables_lev"] =v_line_2["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
+
+v_line_2[["cables_array_1", "cables_array_2", "cables_array_3", "cables_array_4"]] = v_line_2[["cables_array_1", "cables_array_2", "cables_array_3", "cables_array_4"]].replace(r'^\s*$', None, regex=True)
+    
+v_line_2["known_cables_sum"] = 0
+v_line_2["known_cables_sum"] = (v_line_2["cables_array_1"].fillna(0) + v_line_2["cables_array_2"].fillna(0) +
+                                v_line_2["cables_array_3"].fillna(0) + v_line_2["cables_array_4"].fillna(0))
+
+v_line_2["cables_left"]=0
+
+v_line_2["cables_left"].loc[(v_line_2["unknown_cables_lev"]==1) & (v_line_2["cables_sum"]!=0)] = v_line_2["cables_sum"]-v_line_2["known_cables_sum"]
+
+for x in range (1,5,1):
+    df_power_line ["cables_array_"+str(x)].loc[v_line_2["index_2"].loc[(v_line_2 ["cables_array_"+str(x)].isnull()==True) & (v_line_2["voltage_array_"+str(x)].isnull()==False)]] = v_line_2["cables_left"].loc[v_line_2["cables_left"] >0 ]
+
+
+# otg_3_cables_heuristic()
+# otg_3_cables_heuristic()
+# otg_neighbour_heuristic()
+# otg_sum_heuristic()
+
+
+df_power_line.plot()         #Create the Plot
+
+
+df_power_substation.plot()
+plt.show()
+# def otg_numb_unknown_cables_lev(id):
+
+#     if power_line["cables_array"].loc[power_line["cables_array"][i]].isnull() == False:
+#         v_numb_known_cable_lev += 1
+#         numb_unknown_volt_lev = len(power_line["cables_array"]) - v_numb_known_cable_lev
+
+#     return numb_unknown_volt_lev
 
 #df_power_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
 # df_neighbours_startpoint= df_power_line["index_2"].loc[df_power_line["voltage_array_1"].isnull() == False].agg(lambda x: df_power_line["startpoint"]
