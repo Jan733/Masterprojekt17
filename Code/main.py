@@ -516,9 +516,13 @@ for x in range (1,5,1):
 v_id_line = df_power_line.copy()
 
 # Writing all neighbours in one Dataframe
-x=1
-neighbours_start_lev_1 = df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)].loc[df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)].str.len()>0].apply(pd.Series)
 
+x=1
+df_neighbours = df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)] + df_neighbours_endpoint_indexes["neighbour_endpoint_lev_"+str(x)]
+
+
+#neighbours_start_lev_1 = df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)].loc[df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)].str.len()>0].apply(pd.Series)
+neighbours_start_lev_1 = df_neighbours.loc[df_neighbours.str.len()>0].apply(pd.Series)
 if len(neighbours_start_lev_1)>0:
     number_columns = len(neighbours_start_lev_1.columns)
     
@@ -531,7 +535,7 @@ if len(neighbours_start_lev_1)>0:
         neighbours_start_lev_1 = neighbours_start_lev_1.groupby(neighbours_start_lev_1.index).first()
     
         
-        neighbours_start_lev_1["values_same_"+str(x)]="" 
+   # neighbours_start_lev_1["values_same_"+str(x)]="" 
     
     # Checking if every Frequency of the neighbours is the same // Thereby looking for the value of neighbours
     for x in range (1, number_columns+1):    
@@ -540,7 +544,7 @@ if len(neighbours_start_lev_1)>0:
         # Overwriting the Frequency if also no frequency is given in df_power_line
     neighbours_start_lev_1 ["frequenz"]=0
     if number_columns >1:
-        for x in range (1, number_columns+1):
+        for x in range (1, number_columns):
             neighbours_start_lev_1["frequenz"].loc[(neighbours_start_lev_1["frequenz"].fillna(0)==0)] = neighbours_start_lev_1["frequency_0"].loc[(neighbours_start_lev_1[x].fillna(0)==0) & (neighbours_start_lev_1["values_same_"+str(x-1)]==True)|(neighbours_start_lev_1["values_same_"+str(number_columns-1)]==True)]
     
     if number_columns==1:
@@ -684,6 +688,7 @@ fig, ax = plt.subplots()
 df_power_line.plot(ax=ax, legend = True)
 
 df_power_substation.plot(ax=ax, marker='o', color='red', markersize=5)
+plt.show()
 #df_power_circ_members.way = df_power_line["geometry"].loc[(a == b for a, b in zip(df_power_circ_members.relation_id, df_power_line["ID"]))]
 #df_power_circ_members.way = df_power_line["geometry"].loc[(df_power_circ_members.relation_id == df_power_line["ID"])]
 #df_power_circ_members.power = df_power_line.power
