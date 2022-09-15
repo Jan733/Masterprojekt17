@@ -701,17 +701,6 @@ df_power_circ_members_pre = pd.DataFrame({"relation_id": df_power_circuits.ID, "
 df_power_circ_members_pre = df_power_circ_members_pre.reset_index().set_index('relation_id')
 df_power_circ_members = pd.DataFrame(df_power_circ_members_pre.line_id.apply(ast.literal_eval).explode()).reset_index()
 
-#update power_circ_members columns
-#df_power_circ_members = pd.DataFrame(df_power_circuits.explode("Nodes"))
-
-df_power_circ_members["length"] = ""
-df_power_circ_members["power"] = ""
-df_power_circ_members["way"] = ""
-
-#df_power_circ_members.way = df_power_line["geometry"].loc[(a == b for a, b in zip(df_power_circ_members.relation_id, df_power_line["ID"]))]
-#df_power_circ_members.way = df_power_line["geometry"].loc[(df_power_circ_members.relation_id == df_power_line["ID"])]
-#df_power_circ_members.power = df_power_line.power
-
 # Processingtime in minutes
 timer_end = time.time()
 print('Runtime ' + str(round((timer_end - timer_start) / 60, 2)) + ' Minutes')
