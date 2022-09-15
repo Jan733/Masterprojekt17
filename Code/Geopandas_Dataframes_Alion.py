@@ -443,15 +443,11 @@ df_power_line.wires_array.loc[df_power_line.wires_array == "triple"] = 3
 df_power_line.wires_array.loc[df_power_line.wires_array == "double"] = 2
 df_power_line.wires_array.loc[df_power_line.wires_array == "single"] = 1
 
-#read_wires()
-
 # 403
 # Power_line: Read Frequency
 # ...
 
 df_power_line["frequency_array"] = " "
-#read_frequency()
-
 df_power_line.frequency_array = df_power_line.frequency.loc[
     (df_power_line.frequency.str.count(";") == 0) & (df_power_line.frequency != np.isnan) & (
                 df_power_line["power"] == "line") & (
@@ -461,15 +457,39 @@ df_power_line.frequency_array = df_power_line.frequency.loc[
 # CIRCUITS
 # Create CIRCUITS from CABLES
 
-#read_circuits()
-'''
-df_power_line["cables_array"].loc[(df_power_line["power"] == "cable") & (df_power_line.cables == np.isnan)
-                                  & (df_power_line["circuits"] != np.isnan) & (df_power_line["circuits"].str.count(";") == 0)
-                                  & (df_power_line["numb_volt_lev"] == 1 or (df_power_line["numb_volt_lev"] == ))
-                                  & (df_power_line["numb_volt_lev"] > 1)] =
+df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "quad"] = 4
+df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "triple"] = 3
+df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "double"] = 2
+df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "single"] = 1
 
-df_power_line["cables_array"].loc[df_power_line["numb_volt_lev"].loc[df_power_line["numb_volt_lev"] == 1]] =
-'''
+def read_circuits():
+    for x in df_power_line.cables:
+        frequency_value = df_power_line["frequency"][x]
+        numb_volt_lev = df_power_line["numb_volt_lev"][x]
+        if "cable" in df_power_line["power"].values:
+            if np.isnan(df_power_line.cables[x]) is True \
+                    and np.isnan(df_power_line["circuits"][x]) is False and ";" not in df_power_line["circuits"][x] \
+                    and (df_power_line["numb_volt_lev"][x] == 1 or
+                         (df_power_line["numb_volt_lev"][x] == df_power_circuits.wires[x] and
+                          len(df_power_line["frequency"])) == df_power_line["numb_volt_lev"][x]):
+                match frequency_value:
+                    case 50:
+                        cables_per_circuit = 3
+                    case 0:
+                        cables_per_circuit = 2
+                    #case 16.7:
+                    #    cables_per_circuit = 2
+                    case _:
+                        cables_per_circuit = ""
+                match numb_volt_lev:
+                    case 1:
+                        df_power_line["cables_array"][1] = df_power_circuits.wires[x]
+                    case numb_volt_lev if (
+                                numb_volt_lev > 1 and numb_volt_lev == df_power_circuits.wires[x]):
+                        for i in numb_volt_lev:
+                            df_power_line["cables_array"][i] = cables_per_circuit
+
+read_circuits()
 
 # 431
 # Calculating Length of cables of geopandas series and
@@ -498,20 +518,6 @@ df_power_circuits = df_power_relations_applied_changes.copy()
 # 503
 # Create table power_circ_members #gets information from power_line table (later)
 
-
-#  --Delete relations, when deleted in power_circuits in cascade manner # unfinished code
-#df_power_circ_members["relation_id"] = df_power_circ_members["relation_id"].loc[df_power_circ_members["relation_id"] == df_power_circuits["ID"]]
-#print(df_power_circ_members)
-
-
-
-pd.set_option('display.max_columns', None)
-pd.set_option('display.width', 100000000)
-pd.set_option('display.max_rows', None)
-#print(df_power_circ_members)
-
-
-
 # 515
 # Change datatypes to int  #necessary for double values #TODO: split values first: cables, voltage, wires, frequency
 df_power_circuits.cables = df_power_circuits.cables.str.split(pat=";").str[0]
@@ -524,32 +530,14 @@ df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] ==
 df_power_circuits.wires.loc[df_power_circuits.wires.str.split(pat=";").str[0] == "single"] = 1
 
 df_power_circuits.frequency = df_power_circuits.frequency.str.split(pat=";").str[0]
-#change_datatype_semic(df_power_circuits, "cables", 1)  # position starts from 1
-#change_datatype_semic(df_power_circuits, "voltage", 1)
-#change_datatype_semic(df_power_circuits, "circuits", 1)
-#change_datatype_semic(df_power_circuits, "frequency", 1)
-#change_datatype_wires("wires", 1)  # position starts from 1
-
-''' #print more rows
-pd.set_option('display.max_columns', None) 
-pd.set_option('display.width', 100000000)
-pd.set_option('display.max_rows', None)
-'''
 
 # 536
 # ASSUMPTION: Voltage of 110kV to 60kV
 df_power_circuits.voltage.loc[df_power_circuits.voltage == "60000"] = 110000
 
-# 555 Delete all Members in power_circ_members which are not in power_line table cascade method
-#df_power_circ_members = df_power_circ_members[df_power_circ_members["relation_id"].isin(df_power_line["ID"])]
-#print(df_power_circ_members)
-
 # 562 Delete all power_circuits where voltage is NaN
 df_power_circuits.voltage = df_power_circuits.voltage.replace(r'^\s*$', None, regex=True)
 df_power_circuits = df_power_circuits.loc[df_power_circuits.voltage.isnull()==False]
-
-# 574 Delete all power_circuits where voltage < min_volt    # min_voltage = user input!!! TODO
-#df_power_circuits = df_power_circuits.loc[int(df_power_circuits.voltage) < "min_voltage" ]
 
 # 584  power_circuits with no frequency and (volt: 220kV or 380kV) get frequency of 50
 df_power_circuits.frequency = df_power_circuits.frequency.replace(r'^\s*$', None, regex=True)
@@ -562,8 +550,6 @@ df_power_circuits.cables = df_power_circuits.cables.replace(r'^\s*$', None, rege
 df_power_circuits.frequency.loc[(df_power_circuits.frequency.isnull()==True) & (df_power_circuits.voltage == "110000")
                                    & ((df_power_circuits.cables.isnull()==True) | (df_power_circuits.cables == "3") 
                                       | (df_power_circuits.cables == "6") | (df_power_circuits.cables ==  "9") | (df_power_circuits.cables == "12"))] = 50
-
-### SET Frequency 16.7, cables = 2, 4?
 
 # 609 Delete all power_circuits which have no Frequency
 df_power_circuits = df_power_circuits.loc[df_power_circuits.frequency.isnull()==False]
@@ -588,7 +574,7 @@ df_power_circ_members["power"] = ""
 df_power_circ_members["way"] = ""
 
 #df_power_circ_members.way = df_power_line["geometry"].loc[(a == b for a, b in zip(df_power_circ_members.relation_id, df_power_line["ID"]))]
-
+#df_power_circ_members.way = df_power_line["geometry"].loc[(df_power_circ_members.relation_id == df_power_line["ID"])]
 #df_power_circ_members.power = df_power_line.power
 
 # Processingtime in minutes
