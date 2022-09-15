@@ -425,7 +425,7 @@ def otg_3_cables_heuristic():
             if power_line.loc["id"] == v_id:
                 cables_from_3_cables = True
 
-
+df_neighbours_startpoint_indexes["index1"].loc[df_neighbours_startpoint_indexes["index1"].str.len() >0]
 def otg_neighbour_heuristic():
 
     dict_all_neighbours = {

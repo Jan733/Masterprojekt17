@@ -668,14 +668,12 @@ v_id_line = df_power_line.copy()
 x=1
 neighbours_start_lev_1 = df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)].loc[df_neighbours_startpoint_indexes["neighbour_startpoint_lev_"+str(x)].str.len()>0].apply(pd.Series)
     
-<<<<<<< HEAD
-    v_line["unknown_cables_lev"] = 0
-    v_line["unknown_cables_lev"] =v_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
 
-    for y in range(1, 5, 1):
-        if (v_line["freq_alike_"+str(y)] == True and
-            ((v_line["cables_sum"] - v_line["known_cables_sum"]) / v_line["unknown_cables_lev"] == 3)):
-=======
+v_line["unknown_cables_lev"] = 0
+v_line["unknown_cables_lev"] =v_line["numb_volt_lev"] - cables_array["v_numb_known_cable_lev"]
+
+
+
 #        df_all_neighbours ["cables"] = v_id_line["cables_array_1"].loc[((v_id_line["voltage_array_"+str(x)].isnull()==False) | ((v_id_line["cables_array_"+str(x)].isnull()==True) & (v_id_line["frequency_array_"+str(x)].isnull() == True)))]
 
 # neighbours_start_lev_1["frequency_"+str(x)] = df_power_line["frequency_array_1"].loc[neighbours_start_lev_1[]]
@@ -694,7 +692,7 @@ for x in range (number_columns):
 
 for x in range (1, number_columns+1):    
     neighbours_start_lev_1["values_same_"+str(x-1)] = neighbours_start_lev_1.iloc[:, number_columns:number_columns+x].eq(neighbours_start_lev_1.iloc[:,number_columns:number_columns+x], axis=0).all(1)
->>>>>>> 296547615737799a1944ab4283f80245e3cdd4b9
+
         
 neighbours_start_lev_1 ["frequenz"]=0
 for x in range (1, number_columns):
@@ -761,11 +759,10 @@ for x in range (1,5,1):
 # otg_sum_heuristic()
 
 
-df_power_line.plot()         #Create the Plot
+fig, ax = plt.subplots()
+df_power_line.plot(ax=ax, legend = True)
 
-
-df_power_substation.plot()
-plt.show()
+df_power_substation.plot(ax=ax, marker='o', color='red', markersize=5)
 # def otg_numb_unknown_cables_lev(id):
 
 #     if power_line["cables_array"].loc[power_line["cables_array"][i]].isnull() == False:
